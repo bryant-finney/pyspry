@@ -1,0 +1,111 @@
+# ⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+# Summary: Define an example YAML configuration file for testing.
+# Created: 2022-10-30 00:02:17
+# Author:  Bryant Finney <finney.bp@gmail.com> (https://bryant-finney.github.io/about)
+# ⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+---
+PYSPRY_ADMINS: &id001 []
+PYSPRY_AUTHENTICATION_BACKENDS:
+  - django.contrib.auth.backends.ModelBackend
+PYSPRY_AUTH:
+  PASSWORD_VALIDATORS:
+    - NAME: django.contrib.auth.password_validation.UserAttributeSimilarityValidator
+    - NAME: django.contrib.auth.password_validation.MinimumLengthValidator
+    - NAME: django.contrib.auth.password_validation.CommonPasswordValidator
+    - NAME: django.contrib.auth.password_validation.NumericPasswordValidator
+  USER_MODEL: auth.User
+PYSPRY_BASE_DIR: ./src
+PYSPRY_CACHES:
+  default:
+    BACKEND: django.core.cache.backends.locmem.LocMemCache
+PYSPRY_DATABASES:
+  default:
+    AUTOCOMMIT: true
+    ENGINE: django.db.backends.sqlite3
+    NAME: db.sqlite3
+PYSPRY_DEBUG: true
+PYSPRY_DEFAULT_CHARSET: utf-8
+PYSPRY_DEFAULT_FILE_STORAGE: django.core.files.storage.FileSystemStorage
+PYSPRY_DEFAULT_FROM_EMAIL: webmaster@localhost
+PYSPRY_EMAIL_BACKEND: django.core.mail.backends.smtp.EmailBackend
+PYSPRY_EMAIL_HOST: localhost
+PYSPRY_EMAIL_SUBJECT_PREFIX: "[Django] "
+PYSPRY_INSTALLED_APPS:
+  - django.contrib.admin
+  - django.contrib.auth
+  - django.contrib.contenttypes
+  - django.contrib.sessions
+  - django.contrib.messages
+  - django.contrib.staticfiles
+  - django_extensions
+PYSPRY_LOGGING:
+  version: 1
+  disable_existing_loggers: false
+  formatters:
+    simple:
+      format: "[%(levelname)s] %(asctime)s (pid %(process)d | thread %(thread)d) %(name)s.%(funcName)s():%(lineno)s: %(message)s"
+      datefmt: "%y-%m-%d %H:%M:%S"
+  handlers:
+    console:
+      level: DEBUG
+      class: logging.StreamHandler
+      formatter: simple
+  loggers:
+    pyspry:
+      handlers: [console]
+      level: DEBUG
+      propagate: false
+  root:
+    handlers: [console]
+    level: INFO
+
+PYSPRY_LOGIN_REDIRECT_URL: /accounts/profile/
+PYSPRY_LOGIN_URL: /accounts/login/
+PYSPRY_LOGOUT_REDIRECT_URL: /accounts/login/
+PYSPRY_MANAGERS: *id001
+PYSPRY_MEDIA_ROOT: ""
+PYSPRY_MEDIA_URL: /
+PYSPRY_MESSAGE_STORAGE: django.contrib.messages.storage.fallback.FallbackStorage
+PYSPRY_MIDDLEWARE:
+  - django.middleware.security.SecurityMiddleware
+  - django.contrib.sessions.middleware.SessionMiddleware
+  - django.middleware.common.CommonMiddleware
+  - django.middleware.csrf.CsrfViewMiddleware
+  - django.contrib.auth.middleware.AuthenticationMiddleware
+  - django.contrib.messages.middleware.MessageMiddleware
+  - django.middleware.clickjacking.XFrameOptionsMiddleware
+PYSPRY_PASSWORD_HASHERS:
+  - django.contrib.auth.hashers.PBKDF2PasswordHasher
+  - django.contrib.auth.hashers.PBKDF2SHA1PasswordHasher
+  - django.contrib.auth.hashers.Argon2PasswordHasher
+  - django.contrib.auth.hashers.BCryptSHA256PasswordHasher
+  - django.contrib.auth.hashers.ScryptPasswordHasher
+PYSPRY_SECRET_KEY: django-insecure-*-&u-_y@22hd91j!2!r(p%v_g@6y3zmht_uh221pt8a=((d@m^
+PYSPRY_SERVER_EMAIL: root@localhost
+PYSPRY_SESSION_ENGINE: django.contrib.sessions.backends.db
+PYSPRY_SESSION_SERIALIZER: django.contrib.sessions.serializers.JSONSerializer
+PYSPRY_SIGNING_BACKEND: django.core.signing.TimestampSigner
+PYSPRY_STATICFILES_FINDERS:
+  - django.contrib.staticfiles.finders.FileSystemFinder
+  - django.contrib.staticfiles.finders.AppDirectoriesFinder
+PYSPRY_STATICFILES_STORAGE: django.contrib.staticfiles.storage.StaticFilesStorage
+PYSPRY_STATIC_ROOT: null
+PYSPRY_STATIC_URL: /static/
+PYSPRY_TEMPLATES:
+  - APP_DIRS: true
+    BACKEND: django.template.backends.django.DjangoTemplates
+    DIRS: []
+    OPTIONS:
+      context_processors:
+        - django.template.context_processors.debug
+        - django.template.context_processors.request
+        - django.contrib.auth.context_processors.auth
+        - django.contrib.messages.context_processors.messages
+PYSPRY_TEST_RUNNER: django.test.runner.DiscoverRunner
+PYSPRY_TIME_ZONE: UTC
+PYSPRY_USE_X_FORWARDED_HOST: false
+PYSPRY_USE_X_FORWARDED_PORT: false
+PYSPRY_WSGI_APPLICATION: pyspry.wsgi.application
+PYSPRY_X_FRAME_OPTIONS: DENY
+
+IGNORED_SETTING: I do not have the correct prefix!

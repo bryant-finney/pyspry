@@ -1,0 +1,41 @@
+version: "3.9"
+
+x-platforms: &buildx-bake-platforms
+  platforms:
+    - linux/amd64
+    - linux/arm64
+
+services:
+  dev:
+    build:
+      args:
+        UID: ${UID:-1000}
+        GID: ${GID:-1000}
+        PYTHON_VERSION: ${PYTHON_VERSION:-3.8}
+      context: .
+      tags:
+        - &commit-tag ${CI_REGISTRY_IMAGE}/dev:${PYSPRY_TAG}
+        - ${CI_REGISTRY_IMAGE}/dev:${PYSPRY_BRANCH_TAG}
+      target: dev
+      x-bake:
+        <<: *buildx-bake-platforms
+
+        cache-from:
+          - type=registry,ref=${CI_REGISTRY_IMAGE}/dev/cache:${PYSPRY_BRANCH_TAG}
+          - type=registry,ref=python:${PYTHON_IMAGE_VERSION:-3}-alpine
+
+        cache-to: type=registry,ref=${CI_REGISTRY_IMAGE}/dev/cache:${PYSPRY_BRANCH_TAG}
+
+    entrypoint: []
+    # by default, launch a container that does nothing
+    command: ["sh", "-c", "sleep infinity"]
+    environment:
+      - SSH_AUTH_SOCK=/run/host-services/ssh-auth.sock
+    image: *commit-tag
+    stdin_open: true
+    tty: true
+    volumes:
+      - .:/usr/local/src/pyspry
+      - ~/.gitconfig:/etc/gitconfig
+      - ~/.ssh/known_hosts:/home/app/.ssh/known_hosts
+      - ${SSH_AGENT_AUTH_SOCK:-/run/host-services/ssh-auth.sock}:/run/host-services/ssh-auth.sock

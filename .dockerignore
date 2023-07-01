@@ -1,0 +1,77 @@
+# Coverage.py
+htmlcov/
+reports/
+
+# cruft
+*.rej
+.cruft.json
+
+# Data
+*.csv*
+*.dat*
+*.pickle*
+*.xls*
+*.zip*
+
+# dotenv
+.env
+.envrc
+
+# Hypothesis
+.hypothesis/
+
+# Jupyter
+*.ipynb
+.ipynb_checkpoints/
+notebooks/
+
+# macOS
+.DS_Store
+
+# mypy
+.dmypy.json
+.mypy_cache/
+
+# Node.js
+node_modules/
+
+# Poetry
+.venv/
+dist/
+
+# PyCharm
+.idea/
+
+# pyenv
+.python-version
+
+# pytest
+.pytest_cache/
+
+# Python
+__pycache__/
+*.py[cdo]
+
+# Terraform
+.terraform/
+
+# VS Code
+.vscode/
+*.code-workspace
+
+# some non-applicable paths in the repo:
+*.bak
+.*.bak
+.cache
+.devcontainer
+.flake8
+.git
+.github
+.gitignore
+.gitlab-ci.yml
+.isort.cfg
+.poetry.lock.md5
+docker-compose.yml
+docs
+etc
+reports
