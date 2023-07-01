@@ -71,6 +71,7 @@ __pycache__/
 .gitlab-ci.yml
 .isort.cfg
 .poetry.lock.md5
+buildx.yml
 docker-compose.yml
 docs
 etc

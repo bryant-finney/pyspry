@@ -1,0 +1,13 @@
+# pattern: jobs are generally named according to '{emoji} {function}:{object}[:{category}]'
+# pattern: jobs are generally ordered by execution stage; properties are ordered alphabetically
+# ⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+variables:
+  PYSPRY_BRANCH_TAG: $CI_COMMIT_REF_SLUG
+  PYSPRY_TAG: $CI_COMMIT_SHORT_SHA
+
+include:
+  - local: .gitlab/docker-build.yml
+    inputs:
+      docker-version: "24"
+      platforms: '["linux/amd64", "linux/arm64"]'
+      service: dev

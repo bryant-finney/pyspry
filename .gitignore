@@ -18,6 +18,7 @@ docs/
 
 # environment config
 *.env
+buildx.yml
 config.yml
 
 # Hypothesis

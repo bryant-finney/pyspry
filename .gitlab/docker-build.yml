@@ -1,0 +1,58 @@
+spec:
+  inputs:
+    docker-version:
+      default: "24"
+    platforms:
+      default: '["linux/arm64"]'
+    provenance:
+      default: "false"
+    service:
+      default: dev
+---
+variables:
+  DOCKER_BUILDKIT: "1"
+  DOCKER_DRIVER: overlay2
+
+🏗 docker buildx bake:
+  artifacts:
+    paths: [buildx.yml]
+    when: always
+  before_script:
+    - docker version
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+
+    # create the buildx bake configuration
+    - printf '%s\n' "$BUILDX_PLATFORMS" >platforms.yml
+    - docker compose -f docker-compose.yml -f platforms.yml convert >buildx.yml
+    - cat buildx.yml
+    - docker buildx create --name $BUILDX_CONTAINER_NAME --driver docker-container
+
+  image: docker:$[[ inputs.docker-version ]]
+
+  needs: []
+  retry:
+    max: 2
+    when:
+      - unknown_failure
+      - api_failure
+      - runner_system_failure
+      - scheduler_failure
+
+  script:
+    - docker buildx bake --pull --push --provenance "$[[ inputs.provenance ]]"
+      --builder=$BUILDX_CONTAINER_NAME "$[[ inputs.service ]]"
+
+  services:
+    - name: docker:$[[ inputs.docker-version ]]-dind
+      alias: docker
+  stage: build
+
+  variables:
+    BUILDX_CONTAINER_NAME: buildx-$CI_CONCURRENT_ID
+    DOCKER_DRIVER: overlay2
+    BUILDX_PLATFORMS: |-
+      services:
+        $[[ inputs.service ]]:
+          build:
+            x-bake:
+              platforms: $[[ inputs.platforms ]]
