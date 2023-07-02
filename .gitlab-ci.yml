@@ -5,6 +5,12 @@ variables:
   PYSPRY_BRANCH_TAG: $CI_COMMIT_REF_SLUG
   PYSPRY_TAG: $CI_COMMIT_SHORT_SHA
 
+stages:
+  - build
+  - lint
+  - test
+  - deploy
+
 include:
   - local: .gitlab/docker-build.yml
     inputs:
@@ -18,5 +24,17 @@ include:
     project: poetry-tools/ci-cd
     ref: main
 
+  - file: poethepoet.yml
+    inputs:
+      image: $CI_REGISTRY_IMAGE/dev:$PYSPRY_TAG
+      poetry-install: "false"
+      stage: lint
+      task: lint
+    project: poetry-tools/ci-cd
+    ref: main
+
 ✔️ poetry check:
+  needs: [🏗 docker buildx bake]
+
+🪶 poe lint:
   needs: [🏗 docker buildx bake]
