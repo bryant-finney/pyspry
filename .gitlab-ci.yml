@@ -2,6 +2,7 @@
 # pattern: jobs are generally ordered by execution stage; properties are ordered alphabetically
 # ⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
 variables:
+  POETRY_VIRTUALENVS_CREATE: "false"
   PYSPRY_BRANCH_TAG: $CI_COMMIT_REF_SLUG
   PYSPRY_IMAGE: $CI_REGISTRY_IMAGE/dev:$PYSPRY_TAG
   PYSPRY_TAG: $CI_COMMIT_SHORT_SHA
@@ -12,7 +13,7 @@ stages:
   - test
   - deploy
 
-.input-image: &input-image
+.dev image: &dev-image
   image: $PYSPRY_IMAGE
 
 include:
@@ -23,18 +24,18 @@ include:
       service: dev
 
   - file: build.yml
-    inputs: *input-image
+    inputs: *dev-image
     project: poetry-tools/ci-cd
     ref: main
 
   - file: check.yml
-    inputs: *input-image
+    inputs: *dev-image
     project: poetry-tools/ci-cd
     ref: main
 
   - file: poethepoet.yml
     inputs:
-      <<: *input-image
+      <<: *dev-image
       poetry-install: "false"
       stage: lint
       task: lint
@@ -43,12 +44,41 @@ include:
 
   - file: poethepoet.yml
     inputs:
-      <<: *input-image
+      <<: *dev-image
       POETRY_VIRTUALENVS_CREATE: "false"
       before-script: poetry install --only-root
       poetry-install: "false"
       stage: test
       task: test
+    project: poetry-tools/ci-cd
+    ref: main
+
+  - file: publish.yml
+    inputs: *dev-image
+    project: poetry-tools/ci-cd
+    ref: main
+
+  - file: publish.yml
+    inputs:
+      <<: *dev-image
+      env-tier: testing
+      env-url: https://test.pypi.org/project/$CI_PROJECT_NAME/
+      pypi-name: testpypi
+      pypi-password: $TESTPYPI_PASSWORD
+      pypi-url: https://test.pypi.org/legacy/
+      pypi-username: $TESTPYPI_USERNAME
+    project: poetry-tools/ci-cd
+    ref: main
+
+  - file: publish.yml
+    inputs:
+      <<: *dev-image
+      env-tier: production
+      env-url: https://pypi.org/project/$CI_PROJECT_NAME/
+      pypi-name: pypi
+      pypi-password: $PYPI_PASSWORD
+      pypi-url: https://pypi.org/legacy/
+      pypi-username: $PYPI_USERNAME
     project: poetry-tools/ci-cd
     ref: main
 
@@ -60,3 +90,22 @@ include:
 🪶 poe lint: *needs_docker-buildx-bake
 
 🪶 poe test: *needs_docker-buildx-bake
+
+🌐 poetry publish gitlab:
+  needs: &poetry-publish-needs
+    - ✔️ poetry check
+    - job: 🏗️ poetry build
+      artifacts: true
+    - 🪶 poe lint
+    - 🪶 poe test
+  rules:
+    - if: $CI_COMMIT_REF_PROTECTED == "true"
+
+🌐 poetry publish testpypi:
+  needs: *poetry-publish-needs
+  rules: &only-protected-tags
+    - if: $CI_COMMIT_REF_PROTECTED == "true" && $CI_COMMIT_TAG
+
+🌐 poetry publish pypi:
+  needs: [🌐 poetry publish testpypi]
+  rules: *only-protected-tags

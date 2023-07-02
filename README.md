@@ -1,4 +1,4 @@
-# A Spry Little Configuration Reader
+# A Springy Little Configuration Reader
 
 Influenced by [Spring Boot's YAML configuration features](https://docs.spring.io/spring-boot/docs/1.1.0.M1/reference/html/boot-features-external-config.html#boot-features-external-config-yaml),
 this library reads system configuration settings from environment variables and YAML files.
