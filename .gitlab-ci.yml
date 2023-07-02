@@ -12,6 +12,9 @@ stages:
   - test
   - deploy
 
+.input-image: &input-image
+  image: $PYSPRY_IMAGE
+
 include:
   - local: .gitlab/docker-build.yml
     inputs:
@@ -19,15 +22,19 @@ include:
       platforms: '["linux/amd64", "linux/arm64"]'
       service: dev
 
+  - file: build.yml
+    inputs: *input-image
+    project: poetry-tools/ci-cd
+    ref: main
+
   - file: check.yml
-    inputs:
-      image: $PYSPRY_IMAGE
+    inputs: *input-image
     project: poetry-tools/ci-cd
     ref: main
 
   - file: poethepoet.yml
     inputs:
-      image: $PYSPRY_IMAGE
+      <<: *input-image
       poetry-install: "false"
       stage: lint
       task: lint
@@ -36,20 +43,20 @@ include:
 
   - file: poethepoet.yml
     inputs:
+      <<: *input-image
       POETRY_VIRTUALENVS_CREATE: "false"
-      before-script: cd /usr/local/src/pyspry
-      image: $PYSPRY_IMAGE
+      before-script: poetry install --only-root
       poetry-install: "false"
       stage: test
       task: test
     project: poetry-tools/ci-cd
     ref: main
 
-✔️ poetry check:
+🏗️ poetry build: &needs_docker-buildx-bake
   needs: [🏗 docker buildx bake]
 
-🪶 poe lint:
-  needs: [🏗 docker buildx bake]
+✔️ poetry check: *needs_docker-buildx-bake
 
-🪶 poe test:
-  needs: [🏗 docker buildx bake]
+🪶 poe lint: *needs_docker-buildx-bake
+
+🪶 poe test: *needs_docker-buildx-bake
