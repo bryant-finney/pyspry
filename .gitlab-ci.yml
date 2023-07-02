@@ -3,6 +3,7 @@
 # ⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
 variables:
   PYSPRY_BRANCH_TAG: $CI_COMMIT_REF_SLUG
+  PYSPRY_IMAGE: $CI_REGISTRY_IMAGE/dev:$PYSPRY_TAG
   PYSPRY_TAG: $CI_COMMIT_SHORT_SHA
 
 stages:
@@ -20,16 +21,27 @@ include:
 
   - file: check.yml
     inputs:
-      image: $CI_REGISTRY_IMAGE/dev:$PYSPRY_TAG
+      image: $PYSPRY_IMAGE
     project: poetry-tools/ci-cd
     ref: main
 
   - file: poethepoet.yml
     inputs:
-      image: $CI_REGISTRY_IMAGE/dev:$PYSPRY_TAG
+      image: $PYSPRY_IMAGE
       poetry-install: "false"
       stage: lint
       task: lint
+    project: poetry-tools/ci-cd
+    ref: main
+
+  - file: poethepoet.yml
+    inputs:
+      POETRY_VIRTUALENVS_CREATE: "false"
+      before-script: cd /usr/local/src/pyspry
+      image: $PYSPRY_IMAGE
+      poetry-install: "false"
+      stage: test
+      task: test
     project: poetry-tools/ci-cd
     ref: main
 
@@ -37,4 +49,7 @@ include:
   needs: [🏗 docker buildx bake]
 
 🪶 poe lint:
+  needs: [🏗 docker buildx bake]
+
+🪶 poe test:
   needs: [🏗 docker buildx bake]
