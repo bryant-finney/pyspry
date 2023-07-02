@@ -11,3 +11,12 @@ include:
       docker-version: "24"
       platforms: '["linux/amd64", "linux/arm64"]'
       service: dev
+
+  - file: check.yml
+    inputs:
+      image: $CI_REGISTRY_IMAGE/dev:$PYSPRY_TAG
+    project: poetry-tools/ci-cd
+    ref: main
+
+✔️ poetry check:
+  needs: [🏗 docker buildx bake]
