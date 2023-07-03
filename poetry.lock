@@ -2522,6 +2522,37 @@ spelling = ["pyenchant (>=3.2,<4.0)"]
 testutils = ["gitpython (>3)"]
 
 [[package]]
+name = "pylint-gitlab"
+version = "1.2.0"
+description = "This project provides pylint formatters for a nice integration with GitLab CI."
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "pylint-gitlab-1.2.0.tar.gz", hash = "sha256:9802350b7fafe9e5fb0749252beff4e10c76b6c33dc7a3be1166158894d22fa7"},
+    {file = "pylint_gitlab-1.2.0-py3-none-any.whl", hash = "sha256:5327e919a3b03d7eb0f08bab1c77bf108061dc6b14b66851595d98a06594ed4e"},
+]
+
+[package.dependencies]
+anybadge = "*"
+astroid = "*"
+dill = "*"
+importlib-metadata = "*"
+isort = "*"
+jinja2 = "*"
+lazy-object-proxy = "*"
+markupsafe = "*"
+mccabe = "*"
+packaging = "*"
+platformdirs = "*"
+pylint = "*"
+pyparsing = "*"
+tomli = "*"
+tomlkit = "*"
+typing-extensions = "*"
+wrapt = "*"
+zipp = "*"
+
+[[package]]
 name = "pyparsing"
 version = "3.1.0"
 description = "pyparsing module - Classes and methods to define and execute parsing grammars"
@@ -3710,4 +3741,4 @@ testing = ["big-O", "flake8 (<5)", "jaraco.functools", "jaraco.itertools", "more
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.8"
-content-hash = "057a22a36c6a7d784c8b5b0f3e4a7164d7fc4de8b62825ca62a2ce755482de06"
+content-hash = "95859580464cd0a552075512976408b4d0ac0bcb5f16a38a3cd39dba6187e502"

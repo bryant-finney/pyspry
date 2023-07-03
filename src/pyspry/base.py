@@ -202,7 +202,7 @@ class Settings(ModuleType):
                 # the value must just be a simple string
                 parsed = value
 
-            if isinstance(parsed, list) or isinstance(parsed, dict):
+            if isinstance(parsed, (dict, list)):
                 env[key] = NestedDict(parsed)
             else:
                 env[key] = parsed
@@ -263,10 +263,10 @@ class Settings(ModuleType):
 
         try:
             attr_val = self.__config[attr_name]
-        except KeyError:
+        except KeyError as e:
             raise AttributeError(
                 f"'{self.__class__.__name__}' object has no attribute '{attr_name}'"
-            )
+            ) from e
 
         return (
             attr_val.serialize(strip_prefix=self.prefix)

@@ -11,6 +11,7 @@ stages:
   - build
   - lint
   - test
+  - docs
   - deploy
 
 .dev image: &dev-image
@@ -53,6 +54,17 @@ include:
     project: poetry-tools/ci-cd
     ref: main
 
+  - file: poethepoet.yml
+    inputs:
+      <<: *dev-image
+      POETRY_VIRTUALENVS_CREATE: "false"
+      before-script: poetry install --only-root
+      poetry-install: "false"
+      stage: docs
+      task: docs
+    project: poetry-tools/ci-cd
+    ref: main
+
   - file: publish.yml
     inputs: *dev-image
     project: poetry-tools/ci-cd
@@ -87,9 +99,39 @@ include:
 
 ✔️ poetry check: *needs_docker-buildx-bake
 
-🪶 poe lint: *needs_docker-buildx-bake
+🪶 poe lint:
+  <<: *needs_docker-buildx-bake
 
-🪶 poe test: *needs_docker-buildx-bake
+  artifacts:
+    paths: [docs]
+    reports:
+      codequality: [docs/reports/pylint-gitlab.json]
+    untracked: true
+    when: always
+
+🪶 poe test:
+  <<: *needs_docker-buildx-bake
+
+  artifacts:
+    paths: [docs]
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: docs/reports/coverage.xml
+      junit: [docs/reports/pytest.xml]
+    untracked: true
+    when: always
+  coverage: '/Total coverage.*\s+(\d+(?:\.\d+)?)%/'
+
+🪶 poe docs:
+  artifacts:
+    untracked: true
+    when: on_success
+  needs:
+    - job: 🪶 poe lint
+      artifacts: true
+    - job: 🪶 poe test
+      artifacts: true
 
 🌐 poetry publish gitlab:
   needs: &poetry-publish-needs
@@ -100,6 +142,17 @@ include:
     - 🪶 poe test
   rules:
     - if: $CI_COMMIT_REF_PROTECTED == "true"
+
+pages:
+  artifacts:
+    paths: [public]
+  needs:
+    - 🌐 poetry publish gitlab
+    - job: 🪶 poe docs
+      artifacts: true
+  rules: [if: $CI_COMMIT_REF_PROTECTED == "true"]
+  script: mv ./docs ./public
+  stage: deploy
 
 🌐 poetry publish testpypi:
   needs: *poetry-publish-needs

@@ -1,5 +1,13 @@
 # A Springy Little Configuration Reader
 
+[![latest release](https://gitlab.com/bryant.finney/pyspry/-/badges/release.svg)](https://gitlab.com/bryant.finney/pyspry/-/releases)
+[![pipeline status](https://gitlab.com/bryant.finney/pyspry/badges/main/pipeline.svg)](https://gitlab.com/bryant.finney/pyspry/-/commits/main)
+[![coverage report](https://gitlab.com/bryant.finney/pyspry/badges/main/coverage.svg)](https://gitlab.com/bryant.finney/pyspry/-/commits/main)
+[![Maintainability](https://api.codeclimate.com/v1/badges/996a01b1ab2df27571d5/maintainability)](https://codeclimate.com/github/bryant-finney/pyspry/maintainability)
+[![pylint](docs/reports/pylint.svg)](https://)
+[![PyPI version](https://badge.fury.io/py/pyspry.svg)](https://badge.fury.io/py/pyspry)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+
 Influenced by [Spring Boot's YAML configuration features](https://docs.spring.io/spring-boot/docs/1.1.0.M1/reference/html/boot-features-external-config.html#boot-features-external-config-yaml),
 this library reads system configuration settings from environment variables and YAML files.
 
@@ -18,12 +26,14 @@ configuration settings. These can be accessed through the `pyspry.settings` modu
 
 For example, consider the following `config.yml` file:
 
-    DATABASES:
-      default:
-        AUTOCOMMIT: true
-        NAME: db.sqlite3
-    DEBUG: true
-    DEFAULT_CHARSET: utf-8
+```yml
+DATABASES:
+  default:
+    AUTOCOMMIT: true
+    NAME: db.sqlite3
+DEBUG: true
+DEFAULT_CHARSET: utf-8
+```
 
 These configuration settings can be accessed as follows:
 
@@ -137,7 +147,7 @@ GLOBAL OPTIONS
   --version      Print the version and exit
   -v, --verbose  Increase command output (repeatable)
   -q, --quiet    Decrease command output (repeatable)
-  -d, --dry-run  Print the task contents but don't actaully run it
+  -d, --dry-run  Print the task contents but don't actually run it
   --root PATH    Specify where to find the pyproject.toml
   --ansi         Force enable ANSI output
   --no-ansi      Force disable ANSI output

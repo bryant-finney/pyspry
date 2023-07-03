@@ -67,6 +67,7 @@ django = "^4.1"
 django-extensions = "^3.2"
 anybadge = "^1.14"
 pylint = "^2.17"
+pylint-gitlab = "^1.2.0"
 
 [tool.poetry.group.pre-commit.dependencies]
 # note: these must be synchronized with `.pre-commit-config.yaml`
@@ -209,6 +210,17 @@ cmd = """
 """
 
 [[tool.poe.tasks.lint.sequence]]
+cmd = """pylint src"""
+
+[[tool.poe.tasks.lint.sequence]]
+shell = """
+  grep -oE 'Your code has been rated at [0-9.]+' docs/reports/pylint-report.txt |
+    rev | cut -d' ' -f1 | rev |
+    xargs -I{} anybadge --overwrite --label pylint --value {} \
+      --file=docs/reports/pylint.svg 7=red 8=orange 9=yellow 10=green
+"""
+
+[[tool.poe.tasks.lint.sequence]]
 shell = "safety check --continue-on-error --full-report"
 
 [tool.poe.tasks.test]
@@ -344,7 +356,7 @@ function-naming-style = "snake_case"
 # style. If left empty, function names will be checked with the set naming style.
 # function-rgx =
 # Good variable names which should always be accepted, separated by a comma.
-good-names = ["e", "f", "i", "j", "k", "ex", "Run", "_"]
+good-names = ["e", "f", "i", "j", "k", "v", "ex", "Run", "_"]
 # Good variable names regexes, separated by a comma. If names match any regex,
 # they will always be accepted
 # good-names-rgxs =
@@ -427,7 +439,7 @@ min-public-methods = 2
 
 [tool.pylint.exceptions]
 # Exceptions that will emit a warning when caught.
-overgeneral-exceptions = ["BaseException", "Exception"]
+overgeneral-exceptions = ["builtins.BaseException", "builtins.Exception"]
 
 [tool.pylint.format]
 # Expected format of line ending, e.g. empty (any line ending), LF or CRLF.
@@ -509,6 +521,7 @@ disable = [
   "useless-suppression",
   "deprecated-pragma",
   "use-symbolic-message-instead",
+  "too-few-public-methods",
 ]
 # Enable the message, report, category or checker with the given id(s). You can
 # either give multiple identifier separated by comma (,) or put this option
@@ -557,9 +570,14 @@ evaluation = "max(0, 0 if fatal else 10.0 - ((float(5 * error + warning + refact
 # Set the output format. Available formats are text, parseable, colorized, json
 # and msvs (visual studio). You can also give a reporter class, e.g.
 # mypackage.mymodule.MyReporterClass.
-# output-format =
+output-format = """\
+  colorized,\
+  pylint_gitlab.GitlabCodeClimateReporter:docs/reports/pylint-gitlab.json,\
+  pylint_gitlab.GitlabPagesHtmlReporter:docs/reports/pylint-gitlab.html,\
+  text:docs/reports/pylint-report.txt\
+"""
 # Tells whether to display a full report or only the messages.
-# reports =
+reports = "y"
 # Activate the evaluation score.
 score = true
 

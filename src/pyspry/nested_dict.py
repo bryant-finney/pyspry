@@ -28,7 +28,7 @@ if sys.version_info.minor > 8:
         ... )
         >>> list(v)
         ['A0', 'A0_B00', 'A0_B00_C000', 'A0_B00_C001', 'A0_B01', 'A0_B01_C010', 'A0_B01_C011', 'A1', 'A1_B10', 'A1_B10_C100', 'A1_B10_C101', 'A1_B11', 'A1_B11_C110', 'A1_B11_C111']
-        """
+        """  # pylint: disable=line-too-long
 
         _mapping: Mapping[KT, Any]
         prefix: str
@@ -60,7 +60,7 @@ if sys.version_info.minor > 8:
 # TODO: drop after support for 3.8 is dropped
 else:  # pragma: no cover
     # stdlib
-    from collections.abc import KeysView, Mapping
+    from collections.abc import KeysView, Mapping  # pylint: disable=ungrouped-imports
 
     class NestedKeysView(KeysView):  # type: ignore[no-redef,type-arg]
         """Override `KeysView` to recurse through nesting.
@@ -73,7 +73,7 @@ else:  # pragma: no cover
         ... )
         >>> list(v)
         ['A0', 'A0_B00', 'A0_B00_C000', 'A0_B00_C001', 'A0_B01', 'A0_B01_C010', 'A0_B01_C011', 'A1', 'A1_B10', 'A1_B10_C100', 'A1_B10_C101', 'A1_B11', 'A1_B11_C110', 'A1_B11_C111']
-        """
+        """  # pylint: disable=line-too-long
 
         _mapping: Mapping  # type: ignore[type-arg]
 
@@ -272,7 +272,7 @@ class NestedDict(MutableMapping):  # type: ignore[type-arg]
     @classmethod
     def _ensure_structure(cls, data: dict[Any, Any]) -> None:
         for key, maybe_nested in list(data.items()):
-            if isinstance(maybe_nested, dict) or isinstance(maybe_nested, list):
+            if isinstance(maybe_nested, (dict, list)):
                 data[key] = NestedDict(maybe_nested)
 
     def get_first_match(self, nested_name: str) -> Any:

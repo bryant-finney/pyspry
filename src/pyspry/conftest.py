@@ -16,7 +16,9 @@ from _pytest.tmpdir import TempPathFactory
 from pyspry import settings as pyspry_settings
 from pyspry.base import Settings
 
-config_yaml = """
+# pylint: disable=redefined-outer-name
+
+CONFIG_YAML = """
     APP_NAME_ATTR_A: [1, 2, 3]
     APP_NAME_EXAMPLE_PARAM: a string!
     APP_NAME_ATTR_B_K: 0
@@ -38,7 +40,7 @@ def config() -> dict[str, Any]:
     Returns:
         dict[str, Any]: the dummy config for `NestedDict` objects
     """
-    config: dict[str, Any] = yaml.safe_load(config_yaml)
+    config: dict[str, Any] = yaml.safe_load(CONFIG_YAML)
     return config
 
 
