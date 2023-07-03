@@ -89,7 +89,7 @@ include:
       env-url: https://pypi.org/project/$CI_PROJECT_NAME/
       pypi-name: pypi
       pypi-password: $PYPI_PASSWORD
-      pypi-url: https://pypi.org/legacy/
+      pypi-url: https://upload.pypi.org/legacy/
       pypi-username: $PYPI_USERNAME
     project: poetry-tools/ci-cd
     ref: main
