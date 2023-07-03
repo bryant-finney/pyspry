@@ -1,12 +1,16 @@
 # A Springy Little Configuration Reader
 
-[![latest release](https://gitlab.com/bryant.finney/pyspry/-/badges/release.svg)](https://gitlab.com/bryant.finney/pyspry/-/releases)
-[![pipeline status](https://gitlab.com/bryant.finney/pyspry/badges/main/pipeline.svg)](https://gitlab.com/bryant.finney/pyspry/-/commits/main)
-[![coverage report](https://gitlab.com/bryant.finney/pyspry/badges/main/coverage.svg)](https://gitlab.com/bryant.finney/pyspry/-/commits/main)
+[![latest release](https://gitlab.com/bfosi/pyspry/-/badges/release.svg)](https://gitlab.com/bfosi/pyspry/-/releases)
+[![pipeline status](https://gitlab.com/bfosi/pyspry/badges/main/pipeline.svg)](https://gitlab.com/bfosi/pyspry/-/pipelines/latest)
+[![coverage report](https://gitlab.com/bfosi/pyspry/badges/main/coverage.svg)](https://bfosi.gitlab.io/pyspry/reports/pytest-html)
 [![Maintainability](https://api.codeclimate.com/v1/badges/996a01b1ab2df27571d5/maintainability)](https://codeclimate.com/github/bryant-finney/pyspry/maintainability)
-[![pylint](docs/reports/pylint.svg)](https://)
+[![pylint](https://bfosi.gitlab.io/pyspry/reports/pylint.svg)](https://bfosi.gitlab.io/pyspry/reports/pylint-gitlab.html)
 [![PyPI version](https://badge.fury.io/py/pyspry.svg)](https://badge.fury.io/py/pyspry)
+[![Downloads](https://static.pepy.tech/badge/pyspry)](https://pepy.tech/project/pyspry)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![docs: pdoc](https://img.shields.io/badge/docs-pdoc-blueviolet)](https://bfosi.gitlab.io/pyspry)
+[![Checked with mypy](https://www.mypy-lang.org/static/mypy_badge.svg)](https://bfosi.gitlab.io/pyspry/reports/mypy-html)
+[![pre-commit.ci status](https://results.pre-commit.ci/badge/github/bryant-finney/pyspry/main.svg)](https://results.pre-commit.ci/latest/github/bryant-finney/pyspry/main)
 
 Influenced by [Spring Boot's YAML configuration features](https://docs.spring.io/spring-boot/docs/1.1.0.M1/reference/html/boot-features-external-config.html#boot-features-external-config-yaml),
 this library reads system configuration settings from environment variables and YAML files.
@@ -164,6 +168,6 @@ CONFIGURED TASKS
 
 ## Reports
 
-- [`bandit`](docs/reports/bandit.html)
-- [`mypy`](docs/reports/mypy-html/index.html)
-- [`pytest` coverage](docs/reports/pytest-html/index.html)
+- [`bandit`](https://bfosi.gitlab.io/pyspry/reports/bandit.html)
+- [`mypy`](https://bfosi.gitlab.io/pyspry/reports/mypy-html/index.html)
+- [`pytest` coverage](https://bfosi.gitlab.io/pyspry/reports/pytest-html/index.html)
