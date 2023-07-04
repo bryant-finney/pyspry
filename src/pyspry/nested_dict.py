@@ -3,101 +3,16 @@ from __future__ import annotations
 
 # stdlib
 import logging
-import sys
-from collections.abc import MutableMapping
-from typing import Any, Iterator, TypeVar
+import typing
+from collections.abc import Mapping, MutableMapping
 
-KT = TypeVar("KT")
+# local
+from pyspry.keysview import NestedKeysView
+
+__all__ = ["NestedDict"]
+
 
 logger = logging.getLogger(__name__)
-
-
-# note: py3.8 handles these type definitions differently than 3.10
-if sys.version_info.minor > 8:
-    # stdlib
-    from typing import KeysView, Mapping
-
-    class NestedKeysView(KeysView[KT]):
-        """Override `KeysView` to recurse through nesting.
-
-        >>> v = NestedKeysView(
-        ...     {
-        ...       "A0": {"B00": {"C000": 1, "C001": 2}, "B01": {"C010": 3, "C011": 4}},
-        ...       "A1": {"B10": {"C100": 5, "C101": 6}, "B11": {"C110": 7, "C111": 8}}
-        ...     }
-        ... )
-        >>> list(v)
-        ['A0', 'A0_B00', 'A0_B00_C000', 'A0_B00_C001', 'A0_B01', 'A0_B01_C010', 'A0_B01_C011', 'A1', 'A1_B10', 'A1_B10_C100', 'A1_B10_C101', 'A1_B11', 'A1_B11_C110', 'A1_B11_C111']
-        """  # pylint: disable=line-too-long
-
-        _mapping: Mapping[KT, Any]
-        prefix: str
-        sep: str
-
-        def __init__(self, mapping: Mapping[KT, Any], prefix: str = "", sep: str = "_") -> None:
-            """Prepend `prefix` to each key in the view, with a `sep` delimiter.
-
-            Args:
-                mapping (Mapping[KT, Any]): create a view of this mapping object's keys
-                prefix (str): prepend this string to each key in the view; defaults to ""
-                sep (str): join each layer of nested keys with this separator; defaults to "_".
-            """
-            self.sep = sep
-            self.prefix = prefix
-            super().__init__(mapping)
-
-        def __iter__(self) -> Iterator[str]:  # type: ignore[override]
-            """Override the parent class to return a string matching layers of nesting."""
-            start = f"{self.prefix}{self.sep}" if self.prefix else ""
-            for key, value in self._mapping.items():
-                if hasattr(value, "items"):
-                    yield f"{start}{key}"
-                    yield from self.__class__(value, f"{start}{key}", self.sep)
-                else:
-                    yield f"{start}{key}"
-
-
-# TODO: drop after support for 3.8 is dropped
-else:  # pragma: no cover
-    # stdlib
-    from collections.abc import KeysView, Mapping  # pylint: disable=ungrouped-imports
-
-    class NestedKeysView(KeysView):  # type: ignore[no-redef,type-arg]
-        """Override `KeysView` to recurse through nesting.
-
-        >>> v = NestedKeysView(
-        ...     {
-        ...       "A0": {"B00": {"C000": 1, "C001": 2}, "B01": {"C010": 3, "C011": 4}},
-        ...       "A1": {"B10": {"C100": 5, "C101": 6}, "B11": {"C110": 7, "C111": 8}}
-        ...     }
-        ... )
-        >>> list(v)
-        ['A0', 'A0_B00', 'A0_B00_C000', 'A0_B00_C001', 'A0_B01', 'A0_B01_C010', 'A0_B01_C011', 'A1', 'A1_B10', 'A1_B10_C100', 'A1_B10_C101', 'A1_B11', 'A1_B11_C110', 'A1_B11_C111']
-        """  # pylint: disable=line-too-long
-
-        _mapping: Mapping  # type: ignore[type-arg]
-
-        def __init__(self, mapping: Mapping, prefix: str = "", sep: str = "_") -> None:  # type: ignore[type-arg]
-            """Prepend `prefix` to each key in the view, with a `sep` delimiter.
-
-            Args:
-                mapping (Mapping[KT, Any]): create a view of this mapping object's keys
-                prefix (str): prepend this string to each key in the view; defaults to ""
-                sep (str): join each layer of nested keys with this separator; defaults to "_".
-            """
-            self.sep = sep
-            self.prefix = prefix
-            super().__init__(mapping)
-
-        def __iter__(self) -> Iterator[str]:
-            """Override the parent class to return a string matching layers of nesting."""
-            start = f"{self.prefix}{self.sep}" if self.prefix else ""
-            for key, value in self._mapping.items():
-                if hasattr(value, "items"):
-                    yield f"{start}{key}"
-                    yield from self.__class__(value, f"{start}{key}", self.sep)
-                else:
-                    yield f"{start}{key}"
 
 
 class NestedDict(MutableMapping):  # type: ignore[type-arg]
@@ -151,15 +66,19 @@ class NestedDict(MutableMapping):  # type: ignore[type-arg]
     True
     """
 
-    __data: dict[str, Any]
+    __data: dict[str, typing.Any]
     __is_list: bool
     sep = "_"
 
-    def __init__(self, *args: MutableMapping[str, Any] | list[Any], **kwargs: Any) -> None:
+    def __init__(
+        self, *args: MutableMapping[str, typing.Any] | list[typing.Any], **kwargs: typing.Any
+    ) -> None:
         """Similar to the `dict` signature, accept a single optional positional argument."""
         if len(args) > 1:
             raise TypeError(f"expected at most 1 argument, got {len(args)}")
         self.__is_list = False
+        data_structure = {}
+
         if args:
             data = args[0]
             if isinstance(data, dict):
@@ -171,8 +90,6 @@ class NestedDict(MutableMapping):  # type: ignore[type-arg]
                     str(i_item): maybe_nested for i_item, maybe_nested in enumerate(data)
                 }
                 self._ensure_structure(data_structure)
-        else:
-            data_structure = {}
 
         self._ensure_structure(kwargs)
         data_structure.update(kwargs)
@@ -180,7 +97,7 @@ class NestedDict(MutableMapping):  # type: ignore[type-arg]
         self.__data = data_structure
         self.squash()
 
-    def __contains__(self, key: Any) -> bool:
+    def __contains__(self, key: typing.Any) -> bool:
         """Check if `self.__data` provides the specified key.
 
         Also consider nesting when evaluating the condition, i.e.
@@ -205,7 +122,7 @@ class NestedDict(MutableMapping):  # type: ignore[type-arg]
         """Delete the object with the specified key from the internal data structure."""
         del self.__data[key]
 
-    def __getitem__(self, key: str) -> Any:
+    def __getitem__(self, key: str) -> typing.Any:
         """Traverse nesting according to the `NestedDict.sep` property."""
         try:
             return self.get_first_match(key)
@@ -218,13 +135,13 @@ class NestedDict(MutableMapping):  # type: ignore[type-arg]
             pass
         raise KeyError(key)
 
-    def __ior__(self, other: Mapping[str, Any]) -> NestedDict:
+    def __ior__(self, other: typing.Mapping[str, typing.Any]) -> NestedDict:
         """Override settings in this object with settings from the specified object."""
         for key, value in other.items():
             self[key] = value
         return self
 
-    def __iter__(self) -> Iterator[Any]:
+    def __iter__(self) -> typing.Iterator[typing.Any]:
         """Return an iterator from the internal data structure."""
         return iter(self.__data)
 
@@ -232,7 +149,7 @@ class NestedDict(MutableMapping):  # type: ignore[type-arg]
         """Proxy the `__len__` method of the `__data` attribute."""
         return len(self.__data)
 
-    def __or__(self, other: Mapping[str, Any]) -> NestedDict:
+    def __or__(self, other: typing.Mapping[str, typing.Any]) -> NestedDict:
         """Override the bitwise `or` operator to support merging `NestedDict` objects.
 
         >>> ( NestedDict({"A": {"B": 0}}) | NestedDict({"A_B": 1}) ).serialize()
@@ -244,7 +161,7 @@ class NestedDict(MutableMapping):  # type: ignore[type-arg]
         """Use a `str` representation similar to `dict`, but wrap it in the class name."""
         return f"{self.__class__.__name__}({repr(self.__data)})"
 
-    def __ror__(self, other: MutableMapping[str, Any]) -> NestedDict:
+    def __ror__(self, other: MutableMapping[str, typing.Any]) -> NestedDict:
         """Cast the other object to a `NestedDict` when needed.
 
         >>> {"A": 0, "B": 1} | NestedDict({"A": 2})
@@ -252,7 +169,7 @@ class NestedDict(MutableMapping):  # type: ignore[type-arg]
         """
         return NestedDict(other) | self
 
-    def __setitem__(self, name: str, value: Any) -> None:
+    def __setitem__(self, name: str, value: typing.Any) -> None:
         """Similar to `__getitem__`, traverse nesting at `NestedDict.sep` in the key."""
         for data_key, data_val in list(self.__data.items()):
             if data_key == name:
@@ -270,24 +187,24 @@ class NestedDict(MutableMapping):  # type: ignore[type-arg]
         self.__data[name] = value
 
     @classmethod
-    def _ensure_structure(cls, data: dict[Any, Any]) -> None:
+    def _ensure_structure(cls, data: dict[typing.Any, typing.Any]) -> None:
         for key, maybe_nested in list(data.items()):
             if isinstance(maybe_nested, (dict, list)):
                 data[key] = NestedDict(maybe_nested)
 
-    def get_first_match(self, nested_name: str) -> Any:
+    def get_first_match(self, nested_name: str) -> typing.Any:
         """Traverse nested settings to retrieve the value of `nested_name`.
 
         Args:
-            nested_name (str): the key to break across the nested data structure
+            nested_name (builtins.str): the key to break across the nested data structure
 
         Returns:
-            Any: the value retrieved from this object or a nested object
+            `typing.Any`: the value retrieved from this object or a nested object
 
         Raises:
-            ValueError: `nested_name` does not correctly identify a key in this object
+            builtins.ValueError: `nested_name` does not correctly identify a key in this object
                 or any of its child objects
-        """
+        """  # noqa: DAR401, DAR402
         matching_keys = sorted(
             [
                 (key, self.maybe_strip(key, nested_name))
@@ -309,7 +226,7 @@ class NestedDict(MutableMapping):  # type: ignore[type-arg]
 
         raise ValueError("no match found")
 
-    def keys(self) -> KeysView[Any]:
+    def keys(self) -> typing.KeysView[typing.Any]:
         """Flatten the nested dictionary to collect the full list of keys.
 
         >>> example = NestedDict({"KEY": {"SUB": {"NAME": "test", "OTHER": 1}}})
@@ -319,15 +236,20 @@ class NestedDict(MutableMapping):  # type: ignore[type-arg]
         return NestedKeysView(self, sep=self.sep)
 
     @staticmethod
-    def maybe_merge(incoming: Mapping[str, Any] | Any, target: MutableMapping[str, Any]) -> bool:
-        """If the given objects are both `Mapping` subclasses, merge them.
+    def maybe_merge(
+        incoming: Mapping[str, typing.Any] | typing.Any,
+        target: MutableMapping[str, typing.Any],
+    ) -> bool:
+        """If the given objects are both `typing.Mapping` subclasses, merge them.
 
         Args:
-            incoming (Mapping[str, Any] | Any): test this object to verify it is a `Mapping`
-            target (MutableMapping[str, Any]): update this `MutableMapping` with `incoming`
+            incoming (typing.Mapping[builtins.str, typing.Any] | typing.Any): test this object to
+                verify it is a `typing.Mapping`
+            target (typing.MutableMapping[builtins.str, typing.Any]): update this
+                `typing.MutableMapping` with the `incoming` mapping
 
         Returns:
-            bool: the two `Mapping` objects were merged
+            builtins.bool: the two `typing.Mapping` objects were merged
         """
         if not hasattr(incoming, "items") or not hasattr(target, "items"):
             return False
@@ -341,7 +263,7 @@ class NestedDict(MutableMapping):  # type: ignore[type-arg]
         """Remove the specified prefix from the given string (if present)."""
         return from_[len(prefix) + 1 :] if from_.startswith(f"{prefix}{cls.sep}") else from_
 
-    def serialize(self, strip_prefix: str = "") -> dict[str, Any] | list[Any]:
+    def serialize(self, strip_prefix: str = "") -> dict[str, typing.Any] | list[typing.Any]:
         """Convert the `NestedDict` back to a `dict` or `list`."""
         return (
             [

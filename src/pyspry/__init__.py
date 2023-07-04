@@ -9,9 +9,10 @@ import logging
 from pyspry.base import Settings
 from pyspry.nested_dict import NestedDict
 
-logger = logging.getLogger(__name__)
+__version__ = "0.0.0"
 
-logger.debug(
+_logger = logging.getLogger(__name__)
+_logger.debug(
     "the following classes are exposed for this package's public API: %s",
     ",".join([Settings.__name__, NestedDict.__name__]),
 )

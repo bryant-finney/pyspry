@@ -22,7 +22,7 @@ classifiers = [
   "Programming Language :: Python :: 3.8",
   "Programming Language :: Python :: 3.9",
   "Programming Language :: Python :: 3.10",
-  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.11",
   "Typing :: Typed",
 ]
 
@@ -51,10 +51,14 @@ strict = true
 style = "pep440"
 vcs = "git"
 
+[tool.poetry-dynamic-versioning.substitution]
+files = ["*.py", "**/__init__.py", "*/__version__.py", "*/_version.py"]
+
 [tool.poetry.dependencies]
 # https://python-poetry.org/docs/dependency-specification/
 python = "^3.8"
 pyyaml = "^6.0"
+typing-extensions = {version = "^4.7.1", python = "3.8"}
 
 [tool.poetry.group.dev.dependencies]
 absolufy-imports = "^0.3"
@@ -187,6 +191,8 @@ cmd = """
     --favicon "favicon-16x16.png"
     pyspry
     builtins
+    collections
+    collections.abc
     dataclasses
     pathlib
     sys
@@ -205,6 +211,8 @@ cmd = """
     --favicon "favicon-16x16.png"
     pyspry
     builtins
+    collections
+    collections.abc
     dataclasses
     pathlib
     sys

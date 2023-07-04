@@ -6,10 +6,10 @@ import json
 import logging
 import os
 import sys
+import types
 from dataclasses import dataclass
 from pathlib import Path
-from types import ModuleType
-from typing import TYPE_CHECKING, Any, Iterable, Type
+from typing import Any, Iterable
 
 # third party
 import yaml
@@ -17,52 +17,13 @@ import yaml
 # local
 from pyspry.nested_dict import NestedDict
 
-if TYPE_CHECKING:  # pragma: no cover
-    try:
-        # stdlib
-        from typing import TypeAlias
-    except ImportError:
-        # third party
-        from typing_extensions import TypeAlias
+__all__ = ["ModuleContainer", "Null", "Settings"]
 
-logger = logger = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 class NullMeta(type):
-    """Classes using this ``metaclass`` return themselves for every operation / interaction.
-
-    >>> Null == None, Null is None
-    (True, False)
-
-    >>> for result in [
-    ...     Null(),
-    ...     Null[0],
-    ...     Null["any-key"],
-    ...     Null.any_attr,
-    ...     Null().any_attr,
-    ...     Null + 5,
-    ...     Null - 5,
-    ...     Null * 5,
-    ...     Null / 5,
-    ...     Null % 5,
-    ...     5 + Null,
-    ...     5 - Null,
-    ...     5 * Null,
-    ...     5 / Null,
-    ...     5 % Null,
-    ... ]:
-    ...     assert result is Null, result
-
-    >>> str(Null)
-    'Null'
-
-    >>> bool(Null)
-    False
-
-    # Null is always false-y
-    >>> Null or "None"
-    'None'
-    """
+    """Classes using this ``metaclass`` return themselves for every operation / interaction."""
 
     def _null_operator(cls, *__o: Any) -> NullMeta:
         return cls
@@ -115,21 +76,55 @@ class NullMeta(type):
 
 
 class Null(metaclass=NullMeta):
-    """Define a class which returns itself for all interactions."""
+    """Define a class which returns itself for all interactions.
+
+    >>> Null == None, Null is None
+    (True, False)
+
+    >>> for result in [
+    ...     Null(),
+    ...     Null[0],
+    ...     Null["any-key"],
+    ...     Null.any_attr,
+    ...     Null().any_attr,
+    ...     Null + 5,
+    ...     Null - 5,
+    ...     Null * 5,
+    ...     Null / 5,
+    ...     Null % 5,
+    ...     5 + Null,
+    ...     5 - Null,
+    ...     5 * Null,
+    ...     5 / Null,
+    ...     5 % Null,
+    ... ]:
+    ...     assert result is Null, result
+
+    >>> str(Null)
+    'Null'
+
+    >>> bool(Null)
+    False
+
+    Null is always false-y:
+
+    >>> Null or "None"
+    'None'
+    """
 
 
 @dataclass
 class ModuleContainer:
-    """Name module instances."""
+    """Pair the instance of a module with its name."""
 
     name: str
-    module: ModuleType | None
+    """Absolute import path of the module, e.g. `pyspry.settings`."""
+
+    module: types.ModuleType | None
+    """The module pulled from `sys.modules`, or `None` if it hadn't already been imported."""
 
 
-NullType: TypeAlias = Type[Null]
-
-
-class Settings(ModuleType):
+class Settings(types.ModuleType):
     """Store settings from environment variables and a config file.
 
     # Usage
@@ -150,11 +145,6 @@ class Settings(ModuleType):
     >>> settings = Settings.load(config_path, prefix="APP_NAME")
     >>> settings.APP_NAME_EXAMPLE_PARAM
     'monkeypatched!'
-
-    The prefix specified on load is automatically added when accessing attributes:
-
-    >>> settings.APP_NAME_EXAMPLE_PARAM == settings.EXAMPLE_PARAM
-    True
 
     ## JSON Values
 
@@ -178,21 +168,31 @@ class Settings(ModuleType):
     """  # noqa: F821
 
     __config: NestedDict
+    """Store the config file contents as a `NestedDict` object."""
 
     prefix: str
+    """Only load settings whose names start with this prefix."""
 
-    # the following property is set by the `Settings.bootstrap()` method and removed by
-    # `Settings.restore()`
-    module_container: ModuleContainer | NullType = Null
+    module_container: ModuleContainer | type[Null] = Null
+    """This property is set by the `Settings.bootstrap()` method and removed by
+    `Settings.restore()`"""
 
     def __init__(self, config: dict[str, Any], environ: dict[str, str], prefix: str) -> None:
         """Deserialize all JSON-encoded environment variables during initialization.
 
         Args:
-            config (dict[str, Any]): this object was loaded from a JSON/YAML file
-            environ (dict[str, Any]): override config settings with these environment variables
-            prefix (str): insert / strip this prefix when needed
-        """
+            config (builtins.dict[builtins.str, typing.Any]): the values loaded from a JSON/YAML
+                file
+            environ (builtins.dict[builtins.str, typing.Any]): override config settings with these
+                environment variables
+            prefix (builtins.str): insert / strip this prefix when needed
+
+        The `prefix` is automatically added when accessing attributes:
+
+        >>> settings = Settings({"APP_NAME_EXAMPLE_PARAM": 0}, {}, prefix="APP_NAME")
+        >>> settings.APP_NAME_EXAMPLE_PARAM == settings.EXAMPLE_PARAM == 0
+        True
+        """  # noqa: RST203
         self.__config = NestedDict(config)
         env: dict[str, Any] = {}
         for key, value in environ.items():
@@ -238,7 +238,7 @@ class Settings(ModuleType):
             name (str): the name of the setting to retrieve
 
         Returns:
-            Any: the value of the setting
+            `Any`: the value of the setting
         """
         try:
             return self.__getattr_override(name)
@@ -274,10 +274,17 @@ class Settings(ModuleType):
             else attr_val
         )
 
-    def bootstrap(self, module_name: str) -> ModuleType | None:
-        """Store the given module object and bootstrap the import mechanic.
+    def bootstrap(self, module_name: str) -> types.ModuleType | None:
+        """Store the named module object, replacing it with `self` to bootstrap the import mechanic.
 
         This object will replace the named module in `sys.modules`.
+
+        Args:
+            module_name (builtins.str): the name of the module to replace
+
+        Returns:
+            typing.Optional[types.ModuleType]: the module object that was replaced, or `None` if the
+                module wasn't already in `sys.modules`
         """
         logger.info("replacing module '%s' with self", module_name)
         try:
@@ -293,12 +300,14 @@ class Settings(ModuleType):
         """Load the specified configuration file and environment variables.
 
         Args:
-            file_path (Path): the path to the config file to load
-            prefix (Optional[str]): if provided, parse all env variables containing this prefix
+            file_path (pathlib.Path): the path to the config file to load
+            prefix (typing.Optional[builtins.str]): if provided, parse all env variables containing
+                this prefix
 
         Returns:
-            Settings: the `Settings` object
-        """
+            pyspry.base.Settings: the `Settings` object loaded from file with environment variable
+                overrides
+        """  # noqa: RST301
         with file_path.open("r", encoding="UTF-8") as f:
             config_data = {
                 str(key): value
@@ -321,31 +330,31 @@ class Settings(ModuleType):
         """If the given name is missing the prefix configured for these settings, insert it.
 
         Args:
-            name (str): the attribute / key name to massage
+            name (builtins.str): the attribute / key name to massage
 
         Returns:
-            str: the name with the prefix inserted `iff` the prefix was missing
+            builtins.str: the name with the prefix inserted `iff` the prefix was missing
         """
         if not name.startswith(self.prefix):
             return f"{self.prefix}{self.__config.sep}{name}"
         return name
 
-    def restore(self) -> ModuleType | None:
-        """Remove self from `sys.modules` and restore the module that was bootstrapped.
+    def restore(self) -> types.ModuleType | None:
+        """Remove `self` from `sys.modules` and restore the module that was bootstrapped.
 
         When a module is bootstrapped, it is replaced by a `Settings` object:
 
-            >>> type(sys.modules["pyspry.settings"])
-            <class 'pyspry.base.Settings'>
+        >>> type(sys.modules["pyspry.settings"])
+        <class 'pyspry.base.Settings'>
 
-        Calling the `.restore()` method reverts the bootstrapping:
+        Calling this method reverts the bootstrapping:
 
-            >>> mod = settings.restore()
-            >>> type(sys.modules["pyspry.settings"])
-            <class 'module'>
+        >>> mod = settings.restore()
+        >>> type(sys.modules["pyspry.settings"])
+        <class 'module'>
 
-            >>> mod is sys.modules["pyspry.settings"]
-            True
+        >>> mod is sys.modules["pyspry.settings"]
+        True
         """  # noqa: F821
         if self.module_container is Null:
             return None
