@@ -23,7 +23,7 @@ classifiers = [
   "Programming Language :: Python :: 3.9",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.12",
-  "Typing :: Typed"
+  "Typing :: Typed",
 ]
 
 [tool.poetry-dynamic-versioning]
@@ -60,8 +60,8 @@ pyyaml = "^6.0"
 absolufy-imports = "^0.3"
 flake8-rst-docstrings = "^0.2"
 jupyterlab = "^3.4"
-pdoc = "^12"
 poethepoet = "^0.20"
+pdoc = "^14"
 coverage = { extras = ["toml"], version = "^6.4" }
 cruft = "^2.11"
 darglint = "^1.8"
@@ -181,23 +181,38 @@ cmd = "poetry self add 'poetry-dynamic-versioning[plugin]'"
 help = "Generate this package's docs"
 cmd = """
   pdoc
-    --docformat $docformat
-    --output-directory $outputdirectory
+    --docformat google
+    --output-directory docs
+    --logo "pyspry.png"
+    --favicon "favicon-16x16.png"
     pyspry
+    builtins
+    dataclasses
+    pathlib
+    sys
+    types
+    typing
+    !pyspry.conftest
     !pyspry.settings
 """
 
-[[tool.poe.tasks.docs.args]]
-help = "The docstring style (default: google)"
-name = "docformat"
-options = ["--docformat"]
-default = "google"
-
-[[tool.poe.tasks.docs.args]]
-help = "The output directory (default: docs)"
-name = "outputdirectory"
-options = ["--output-directory"]
-default = "docs"
+[tool.poe.tasks.docserver]
+help = "Use 'pdoc' to launch an HTTP server for this package's docs"
+cmd = """
+  pdoc
+    --docformat google
+    --logo "https://gitlab.com/uploads/-/system/project/avatar/47326976/pyspry.png"
+    --favicon "favicon-16x16.png"
+    pyspry
+    builtins
+    dataclasses
+    pathlib
+    sys
+    types
+    typing
+    !pyspry.conftest
+    !pyspry.settings
+"""
 
 [tool.poe.tasks.lab]
 help = "Run Jupyter Lab"

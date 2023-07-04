@@ -10,7 +10,6 @@
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![docs: pdoc](https://img.shields.io/badge/docs-pdoc-blueviolet)](https://bfosi.gitlab.io/pyspry)
 [![Checked with mypy](https://www.mypy-lang.org/static/mypy_badge.svg)](https://bfosi.gitlab.io/pyspry/reports/mypy-html)
-[![pre-commit.ci status](https://results.pre-commit.ci/badge/github/bryant-finney/pyspry/main.svg)](https://results.pre-commit.ci/latest/github/bryant-finney/pyspry/main)
 
 Influenced by [Spring Boot's YAML configuration features](https://docs.spring.io/spring-boot/docs/1.1.0.M1/reference/html/boot-features-external-config.html#boot-features-external-config-yaml),
 this library reads system configuration settings from environment variables and YAML files.
@@ -30,14 +29,16 @@ configuration settings. These can be accessed through the `pyspry.settings` modu
 
 For example, consider the following `config.yml` file:
 
-```yml
-DATABASES:
-  default:
-    AUTOCOMMIT: true
-    NAME: db.sqlite3
-DEBUG: true
-DEFAULT_CHARSET: utf-8
-```
+<!-- note: pdoc was struggling with a YAML markdown codeblock here -->
+<div class="pdoc-code codehilite">
+<pre><span></span><code><span class="nt">DATABASES</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">default</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">AUTOCOMMIT</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="w">    </span><span class="nt">NAME</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">db.sqlite3</span>
+<span class="nt">DEBUG</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="nt">DEFAULT_CHARSET</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">utf-8</span>
+</code></pre>
+</div>
 
 These configuration settings can be accessed as follows:
 
@@ -138,10 +139,9 @@ The following system dependencies are required:
 Common development commands are managed by [`poethepoet`](https://github.com/nat-n/poethepoet); run
 `poe --help` for an up-to-date list of commands:
 
-```sh
-❯ poe --help
+```txt
 Poe the Poet - A task runner that works well with poetry.
-version 0.16.4
+version 0.20.0
 
 USAGE
   poe [-h] [-v | -q] [--root PATH] [--ansi | --no-ansi] task [task arguments]
@@ -157,13 +157,12 @@ GLOBAL OPTIONS
   --no-ansi      Force disable ANSI output
 
 CONFIGURED TASKS
-  setup-versioning      Install the 'poetry-dynamic-versioning' plugin to the local 'poetry' installation
-  docs                  Generate this package's docs
-    --docformat         The docstring style (default: google)
-    --output-directory  The output directory (default: docs)
-  lab                   Run Jupyter Lab
-  lint                  Lint this package
-  test                  Test this package and report coverage
+  setup-versioning  Install the 'poetry-dynamic-versioning' plugin to the local 'poetry' installation
+  docs              Generate this package's docs
+  docserver         Use 'pdoc' to launch an HTTP server for this package's docs
+  lab               Run Jupyter Lab
+  lint              Lint this package
+  test              Test this package and report coverage
 ```
 
 ## Reports
