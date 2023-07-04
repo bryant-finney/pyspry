@@ -8,7 +8,7 @@
 [![PyPI version](https://badge.fury.io/py/pyspry.svg)](https://badge.fury.io/py/pyspry)
 [![Downloads](https://static.pepy.tech/badge/pyspry)](https://pepy.tech/project/pyspry)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
-[![docs: pdoc](https://img.shields.io/badge/docs-pdoc-blueviolet)](https://bfosi.gitlab.io/pyspry/pyspry.html?logo=gitlab)
+[![docs: pdoc](https://img.shields.io/badge/docs-pdoc-blueviolet?logo=gitlab)](https://bfosi.gitlab.io/pyspry/pyspry.html)
 [![Checked with mypy](https://www.mypy-lang.org/static/mypy_badge.svg)](https://bfosi.gitlab.io/pyspry/reports/mypy-html)
 
 Influenced by [Spring Boot's YAML configuration features](https://docs.spring.io/spring-boot/docs/1.1.0.M1/reference/html/boot-features-external-config.html#boot-features-external-config-yaml),
