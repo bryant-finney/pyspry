@@ -38,6 +38,7 @@ include:
     inputs:
       <<: *dev-image
       poetry-install: "false"
+      before-script: pre-commit install --install-hooks || rm -rf $PRE_COMMIT_HOME
       stage: lint
       task: lint
     project: poetry-tools/ci-cd

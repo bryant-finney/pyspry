@@ -9,8 +9,8 @@ name = "pyspry"
 version = "0.0.0"
 description = "A springy little configuration reader"
 authors = ["Bryant Finney <finney.bp@gmail.com>"]
-documentation = "https://bfosi.gitlab.io/pyspry/"
-homepage = "https://bfosi.gitlab.io/pyspry/"
+documentation = "https://bfosi.gitlab.io/pyspry/index.html"
+homepage = "https://bfosi.gitlab.io/pyspry/pyspry.html"
 license = "MIT"
 readme = "README.md"
 repository = "https://gitlab.com/bfosi/pyspry"
@@ -183,42 +183,44 @@ cmd = "poetry self add 'poetry-dynamic-versioning[plugin]'"
 # https://github.com/nat-n/poethepoet
 [tool.poe.tasks.docs]
 help = "Generate this package's docs"
-cmd = """
-  pdoc
-    --docformat google
-    --output-directory docs
-    --logo "pyspry.png"
-    --favicon "favicon-16x16.png"
-    pyspry
-    builtins
-    collections
-    collections.abc
-    dataclasses
-    pathlib
-    sys
-    types
-    typing
-    !pyspry.conftest
+shell = """
+  pdoc \
+    --docformat google \
+    --output-directory docs \
+    --logo "pyspry.png" \
+    --favicon "favicon-16x16.png" \
+    --footer "$(poetry version)" \
+    pyspry \
+    builtins \
+    collections \
+    collections.abc \
+    dataclasses \
+    pathlib \
+    sys \
+    types \
+    typing \
+    !pyspry.conftest \
     !pyspry.settings
 """
 
 [tool.poe.tasks.docserver]
 help = "Use 'pdoc' to launch an HTTP server for this package's docs"
-cmd = """
-  pdoc
-    --docformat google
-    --logo "https://gitlab.com/uploads/-/system/project/avatar/47326976/pyspry.png"
-    --favicon "favicon-16x16.png"
-    pyspry
-    builtins
-    collections
-    collections.abc
-    dataclasses
-    pathlib
-    sys
-    types
-    typing
-    !pyspry.conftest
+shell = """
+  pdoc \
+    --docformat google \
+    --logo "https://gitlab.com/uploads/-/system/project/avatar/47326976/pyspry.png" \
+    --favicon "favicon-16x16.png" \
+    --footer "$(poetry version)" \
+    pyspry \
+    builtins \
+    collections \
+    collections.abc \
+    dataclasses \
+    pathlib \
+    sys \
+    types \
+    typing \
+    !pyspry.conftest \
     !pyspry.settings
 """
 
