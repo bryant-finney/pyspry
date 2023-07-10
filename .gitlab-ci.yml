@@ -59,10 +59,9 @@ include:
     inputs:
       <<: *dev-image
       POETRY_VIRTUALENVS_CREATE: "false"
-      before-script: poetry install --only-root
       poetry-install: "false"
       stage: docs
-      task: docs
+      task: build-docs
     project: poetry-tools/ci-cd
     ref: main
 
@@ -124,7 +123,7 @@ include:
     when: always
   coverage: '/Total coverage.*\s+(\d+(?:\.\d+)?)%/'
 
-🪶 poe docs:
+🪶 poe build-docs:
   artifacts:
     untracked: true
     when: on_success
@@ -133,6 +132,9 @@ include:
       artifacts: true
     - job: 🪶 poe test
       artifacts: true
+  variables:
+    GIT_DEPTH: "0"
+    GIT_STRATEGY: "clone"
 
 🌐 poetry publish gitlab:
   needs: &poetry-publish-needs
@@ -149,7 +151,7 @@ pages:
     paths: [public]
   needs:
     - 🌐 poetry publish gitlab
-    - job: 🪶 poe docs
+    - job: 🪶 poe build-docs
       artifacts: true
   rules: [if: $CI_COMMIT_REF_PROTECTED == "true"]
   script: mv ./docs ./public

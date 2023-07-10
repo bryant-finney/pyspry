@@ -58,7 +58,7 @@ files = ["*.py", "**/__init__.py", "*/__version__.py", "*/_version.py"]
 # https://python-poetry.org/docs/dependency-specification/
 python = "^3.8"
 pyyaml = "^6.0"
-typing-extensions = {version = "^4.7.1", python = "3.8"}
+typing-extensions = { version = "^4.7.1", python = "3.8" }
 
 [tool.poetry.group.dev.dependencies]
 absolufy-imports = "^0.3"
@@ -171,10 +171,13 @@ testpaths = ["src", "tests"]
 xfail_strict = true
 
 [tool.poe.env]
+FAVICON_URL.default = "https://bfosi.gitlab.io/pyspry/favicon-16x16.png"
+LOGO_URL.default = "https://bfosi.gitlab.io/pyspry/pyspry.png"
 PYSPRY_CONFIG_PATH.default = "sample-config.yml"
 PYSPRY_VAR_PREFIX.default = "PYSPRY"
 
 [tool.poe.tasks]
+_version.cmd = "poetry version"
 
 [tool.poe.tasks.setup-versioning]
 help = "Install the 'poetry-dynamic-versioning' plugin to the local 'poetry' installation"
@@ -183,46 +186,59 @@ cmd = "poetry self add 'poetry-dynamic-versioning[plugin]'"
 # https://github.com/nat-n/poethepoet
 [tool.poe.tasks.docs]
 help = "Generate this package's docs"
-shell = """
-  pdoc \
-    --docformat google \
-    --output-directory docs \
-    --logo "pyspry.png" \
-    --favicon "favicon-16x16.png" \
-    --footer "$(poetry version)" \
-    pyspry \
-    builtins \
-    collections \
-    collections.abc \
-    dataclasses \
-    pathlib \
-    sys \
-    types \
-    typing \
-    !pyspry.conftest \
+cmd = """
+  pdoc
+    --docformat google
+    --output-directory docs
+    --logo "$LOGO_URL"
+    --favicon "$FAVICON_URL"
+    --footer "$PYSPRY_VERSION"
+    pyspry
+    builtins
+    collections
+    collections.abc
+    dataclasses
+    pathlib
+    sys
+    types
+    typing
+    !pyspry.conftest
     !pyspry.settings
 """
 
-[tool.poe.tasks.docserver]
+[tool.poe.tasks.build-docs]
+help = "Run a command sequence to build the documentation suite"
+deps = ["setup-versioning"]
+uses = {PYSPRY_VERSION = "_version" }
+
+sequence = [
+  { cmd = "poetry install --only-root" },
+  { ref = "docs" }
+]
+
+
+[tool.poe.tasks.serve-docs]
 help = "Use 'pdoc' to launch an HTTP server for this package's docs"
-shell = """
-  pdoc \
-    --docformat google \
-    --logo "https://gitlab.com/uploads/-/system/project/avatar/47326976/pyspry.png" \
-    --favicon "favicon-16x16.png" \
-    --footer "$(poetry version)" \
-    pyspry \
-    builtins \
-    collections \
-    collections.abc \
-    dataclasses \
-    pathlib \
-    sys \
-    types \
-    typing \
-    !pyspry.conftest \
+cmd = """
+  pdoc
+    --docformat google
+    --logo "$LOGO_URL"
+    --favicon "$FAVICON_URL"
+    --footer "$PYSPRY_VERSION"
+    pyspry
+    builtins
+    collections
+    collections.abc
+    dataclasses
+    pathlib
+    sys
+    types
+    typing
+    !pyspry.conftest
     !pyspry.settings
 """
+
+uses = { PYSPRY_VERSION = "_version" }
 
 [tool.poe.tasks.lab]
 help = "Run Jupyter Lab"
