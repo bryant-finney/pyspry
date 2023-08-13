@@ -109,6 +109,8 @@ semgrep-sast:
 
 container_scanning:
   needs: [🏗 docker buildx bake]
+  variables:
+    GIT_STRATEGY: fetch
 
 gemnasium-python-dependency_scanning:
   needs: [🏗 docker buildx bake]
