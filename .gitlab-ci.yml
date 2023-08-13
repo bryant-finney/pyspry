@@ -44,7 +44,11 @@ include:
     inputs:
       <<: *dev-image
       poetry-install: "false"
-      before-script: pre-commit install --install-hooks || rm -rf $PRE_COMMIT_HOME
+      before-script: |-
+        pre-commit install --install-hooks || {
+          rm -rf $PRE_COMMIT_HOME
+          pre-commit install --install-hooks
+        }
       stage: lint
       task: lint
     project: poetry-tools/ci-cd
@@ -99,6 +103,15 @@ include:
       pypi-username: $PYPI_USERNAME
     project: poetry-tools/ci-cd
     ref: main
+
+semgrep-sast:
+  needs: []
+
+container_scanning:
+  needs: [🏗 docker buildx bake]
+
+gemnasium-python-dependency_scanning:
+  needs: [🏗 docker buildx bake]
 
 🏗️ poetry build: &needs_docker-buildx-bake
   needs: [🏗 docker buildx bake]
