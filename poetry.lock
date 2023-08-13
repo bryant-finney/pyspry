@@ -3145,15 +3145,15 @@ testing-integration = ["build[virtualenv]", "filelock (>=3.4.0)", "jaraco.envs (
 
 [[package]]
 name = "shellcheck-py"
-version = "0.8.0.4"
+version = "0.9.0.5"
 description = "Python wrapper around invoking shellcheck (https://www.shellcheck.net/)"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "shellcheck_py-0.8.0.4-py2.py3-none-macosx_10_14_x86_64.whl", hash = "sha256:fa4ba8b6cdc55e5bf97b7d8d9c9185039e2b71c2ebcfa1776673d747c58eb4cf"},
-    {file = "shellcheck_py-0.8.0.4-py2.py3-none-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:dce4b3e9c0da94847ebee32f46982b79156c18ec2e5ba996a3d9b5c9182db365"},
-    {file = "shellcheck_py-0.8.0.4-py2.py3-none-win_amd64.whl", hash = "sha256:2f5bddf776b3aca7719087d57f2805595516adb391f54f326863e46c9417dbd5"},
-    {file = "shellcheck_py-0.8.0.4.tar.gz", hash = "sha256:d7951895864692a20ff261e56272328a68ef965bf6c08b92e471d98931307f4e"},
+    {file = "shellcheck_py-0.9.0.5-py2.py3-none-macosx_10_15_x86_64.whl", hash = "sha256:98d9668f72afeb65c7a8e60f02202b00d64f2de9e9b103dfb5d0067ded391ef3"},
+    {file = "shellcheck_py-0.9.0.5-py2.py3-none-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:65ddc19a1ae4249802a663682834ed452f9e75615d58c3ce6b3f1b0d2a484f32"},
+    {file = "shellcheck_py-0.9.0.5-py2.py3-none-win_amd64.whl", hash = "sha256:9f50a7354f355753f365668e79aa3d410cb6f4d9358e4c5d8464018cf2b4863a"},
+    {file = "shellcheck_py-0.9.0.5.tar.gz", hash = "sha256:50b2057fac7227fd83614a9bf9d123042e53e03d92f2c7f1778448a8937f07a4"},
 ]
 
 [[package]]
@@ -3751,4 +3751,4 @@ testing = ["big-O", "flake8 (<5)", "jaraco.functools", "jaraco.itertools", "more
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.8"
-content-hash = "e2fb393ccd126836a5deda8efb1da0f9046f62baf6aebe86f528884d94b57393"
+content-hash = "1c6c8f549ed0c417ed61bce4f027008f6335be504d90a1557d59c0685d95ff97"
