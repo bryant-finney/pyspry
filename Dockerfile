@@ -30,6 +30,7 @@ SHELL ["/bin/bash", "-eo", "pipefail", "-c"]
 RUN --mount=type=cache,sharing=private,target=/var/cache/apt \
     echo "⚙️  installing system dependencies" && \
     apt-get update && apt-get install --no-install-recommends -y build-essential curl git && \
+    apt satisfy -y "linux-libc-dev (>=6.1.37-1)" && \
     curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s - -y && \
     rm -rf /var/lib/apt/lists/*
 
