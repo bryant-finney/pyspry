@@ -91,7 +91,7 @@ pylint-gitlab = "^1.2.0"
 bandit = { extras = ["toml"], version = "^1.7" }
 black = ">=22.6,<24.0"
 flake8 = "^5"
-flake8-bugbear = "^22.6"
+flake8-bugbear = ">=22.6,<24.0"
 flake8-comprehensions = "^3.10"
 flake8-eradicate = "^1.5.0"
 flake8-mutable = "^1.2"
