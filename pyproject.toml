@@ -63,7 +63,7 @@ typing-extensions = { version = "^4.7.1", python = "3.8" }
 [tool.poetry.group.dev.dependencies]
 absolufy-imports = "^0.3"
 flake8-rst-docstrings = ">=0.2,<0.4"
-jupyterlab = "^3.4"
+jupyterlab = ">=3.4,<5.0"
 poethepoet = ">=0.20,<0.22"
 pdoc = "^14"
 coverage = { extras = ["toml"], version = "^6.4" }
