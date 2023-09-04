@@ -73,6 +73,8 @@ pytest = "^7.1.2"
 pytest-clarity = "^1.0.1"
 pytest-cov = ">=3,<5"
 pytest-mock = "^3.8"
+pytest-testmon = "^2.0.12"
+pytest-watch = "^4.2.0"
 pytest-xdist = "^3"
 pyupgrade = ">=2.34,<4.0"
 safety = "^2.1"
@@ -106,6 +108,9 @@ mypy = { extras = ["reports"], version = "^1.4.1" }
 pydocstyle = { extras = ["toml"], version = "^6.1" }
 
 
+[tool.ruff]
+line-length = 100
+
 [tool.bandit]
 # https://bandit.readthedocs.io/en/latest/config.html
 skips = ["B101"]
@@ -124,7 +129,6 @@ skip_covered = true
 
 [tool.coverage.run]
 # https://coverage.readthedocs.io/en/latest/config.html#run
-branch = true
 command_line = "--module pytest"
 data_file = ".coverage"
 source = ["src"]
@@ -285,6 +289,7 @@ help = "Test this package and report coverage"
 cmd = """
   pytest
     --cov=./src/
+    --cov-branch
     --cov-fail-under=90
     --cov-report=term
     --cov-report=html:./docs/reports/pytest-html
@@ -294,6 +299,27 @@ cmd = """
     --junitxml=docs/reports/pytest.xml
     .
 """
+
+[tool.poe.tasks.testmon]
+help = "Test this package and report coverage for only changed files"
+cmd = """
+  pytest
+    --cov=./src/
+    --cov-fail-under=90
+    --cov-report=term
+    --cov-report=html:./docs/reports/pytest-html
+    --cov-report=xml:./docs/reports/coverage.xml
+    --doctest-glob=README.md
+    --ignore-glob=./src/pyspry/settings.py
+    --junitxml=docs/reports/pytest.xml
+    --testmon
+    .
+"""
+
+[tool.poe.tasks.test-watch]
+help = "Run tests continuously by watching for file changes"
+env = { "POETRY_DYNAMIC_VERSIONING_BYPASS" = "0.0.0" }
+cmd = "ptw --config ptw.ini ."
 
 [tool.pylint.main]
 # Analyse import fallback blocks. This can be used to support both Python 2 and 3
