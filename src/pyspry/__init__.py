@@ -9,6 +9,8 @@ import logging
 from pyspry.base import Settings
 from pyspry.nested_dict import NestedDict
 
+__all__ = ["__version__", "NestedDict", "Settings"]
+
 __version__ = "0.0.0"
 
 _logger = logging.getLogger(__name__)
