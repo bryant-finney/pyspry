@@ -300,26 +300,10 @@ cmd = """
     .
 """
 
-[tool.poe.tasks.testmon]
-help = "Test this package and report coverage for only changed files"
-cmd = """
-  pytest
-    --cov=./src/
-    --cov-fail-under=90
-    --cov-report=term
-    --cov-report=html:./docs/reports/pytest-html
-    --cov-report=xml:./docs/reports/coverage.xml
-    --doctest-glob=README.md
-    --ignore-glob=./src/pyspry/settings.py
-    --junitxml=docs/reports/pytest.xml
-    --testmon
-    .
-"""
-
 [tool.poe.tasks.test-watch]
 help = "Run tests continuously by watching for file changes"
 env = { "POETRY_DYNAMIC_VERSIONING_BYPASS" = "0.0.0" }
-cmd = "ptw --config ptw.ini ."
+cmd = "ptw --config ptw.ini"
 
 [tool.pylint.main]
 # Analyse import fallback blocks. This can be used to support both Python 2 and 3
