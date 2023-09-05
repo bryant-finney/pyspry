@@ -226,6 +226,18 @@ class NestedDict(MutableMapping):  # type: ignore[type-arg]
 
         raise ValueError("no match found")
 
+    @property
+    def is_list(self) -> bool:
+        """Return `True` if the internal data structure is a `list`.
+
+        >>> NestedDict([1, 2, 3]).is_list
+        True
+
+        >>> NestedDict({"A": 0}).is_list
+        False
+        """
+        return self.__is_list
+
     def keys(self) -> typing.KeysView[typing.Any]:
         """Flatten the nested dictionary to collect the full list of keys.
 
