@@ -77,24 +77,25 @@ class NestedDict(MutableMapping):  # type: ignore[type-arg]
         if len(args) > 1:
             raise TypeError(f"expected at most 1 argument, got {len(args)}")
         self.__is_list = False
-        data_structure = {}
+        structured_data: dict[str, typing.Any] = {}
 
         if args:
             data = args[0]
             if isinstance(data, dict):
-                self._ensure_structure(data)
-                data_structure = data
+                structured_data = self._ensure_structure(data)
             elif isinstance(data, list):
                 self.__is_list = True
-                data_structure = {
-                    str(i_item): maybe_nested for i_item, maybe_nested in enumerate(data)
-                }
-                self._ensure_structure(data_structure)
+                structured_data = self._ensure_structure(dict(enumerate(data)))
+            elif isinstance(data, self.__class__):
+                self.__is_list = data.is_list
+                structured_data = dict(data)
+            else:
+                raise TypeError(f"expected dict or list, got {type(data)}")
 
-        self._ensure_structure(kwargs)
-        data_structure.update(kwargs)
+        restructured = self._ensure_structure(kwargs)
+        structured_data.update(restructured)
 
-        self.__data = data_structure
+        self.__data = structured_data
         self.squash()
 
     def __contains__(self, key: typing.Any) -> bool:
@@ -148,8 +149,11 @@ class NestedDict(MutableMapping):  # type: ignore[type-arg]
         >>> example.serialize()
         ['D', 'E']
         """
-        for key, value in other.items():
-            self[key] = value
+        converted = NestedDict(other)
+        self.maybe_merge(converted, self)
+
+        if converted.is_list:
+            self._reduce(self, converted)
         return self
 
     def __iter__(self) -> typing.Iterator[typing.Any]:
@@ -174,6 +178,19 @@ class NestedDict(MutableMapping):  # type: ignore[type-arg]
         >>> NestedDict([0, {"A": 1}]) | [1, {"B": 2}]
         NestedDict({'0': 1, '1': NestedDict({'A': 1, 'B': 2})})
         """
+        if self.is_list ^ (converted := NestedDict(other)).is_list:
+            raise TypeError(
+                f"cannot merge {other} (list: {converted.is_list}) with {self} (list: "
+                f"{self.is_list})"
+            )
+
+        if converted.is_list:
+            self.maybe_merge(converted, merged := NestedDict(self))
+            self._reduce(merged, converted)
+            return merged
+
+        assert isinstance(other, Mapping)
+
         return NestedDict({**self.__data, **other})
 
     def __repr__(self) -> str:
@@ -190,6 +207,10 @@ class NestedDict(MutableMapping):  # type: ignore[type-arg]
         >>> merged_lists.serialize()
         [1, 2]
         """
+        if not isinstance(other, (dict, list)):
+            raise TypeError(
+                f"unsupported operand type(s) for |: '{type(other)}' and '{self.__class__}'"
+            )
         return NestedDict(other) | self
 
     def __setitem__(self, name: str, value: typing.Any) -> None:
@@ -213,9 +234,14 @@ class NestedDict(MutableMapping):  # type: ignore[type-arg]
     def _ensure_structure(
         cls, data: typing.Mapping[typing.Any, typing.Any]
     ) -> dict[str, typing.Any]:
+        out: dict[str, typing.Any] = {}
         for key, maybe_nested in list(data.items()):
+            k = str(key)
             if isinstance(maybe_nested, (dict, list)):
-                data[key] = NestedDict(maybe_nested)
+                out[k] = NestedDict(maybe_nested)
+            else:
+                out[k] = maybe_nested
+        return out
 
     @staticmethod
     def _reduce(
@@ -307,11 +333,19 @@ class NestedDict(MutableMapping):  # type: ignore[type-arg]
         Returns:
             builtins.bool: the two `typing.Mapping` objects were merged
         """
-        if not hasattr(incoming, "items") or not hasattr(target, "items"):
+        if not hasattr(incoming, "items") or not incoming.items():
             return False
 
         for k, v in incoming.items():
-            target[k] = v
+            if k not in target:
+                target[k] = v
+                continue
+
+            if not cls.maybe_merge(v, target[k]):
+                target[k] = v
+            elif hasattr(target[k], "is_list") and target[k].is_list:
+                cls._reduce(target[k], v)
+
         return True
 
     @classmethod
