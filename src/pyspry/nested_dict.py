@@ -71,7 +71,7 @@ class NestedDict(MutableMapping):  # type: ignore[type-arg]
     sep = "_"
 
     def __init__(
-        self, *args: MutableMapping[str, typing.Any] | list[typing.Any], **kwargs: typing.Any
+        self, *args: typing.Mapping[str, typing.Any] | list[typing.Any], **kwargs: typing.Any
     ) -> None:
         """Similar to the `dict` signature, accept a single optional positional argument."""
         if len(args) > 1:
@@ -135,8 +135,19 @@ class NestedDict(MutableMapping):  # type: ignore[type-arg]
             pass
         raise KeyError(key)
 
-    def __ior__(self, other: typing.Mapping[str, typing.Any]) -> NestedDict:
-        """Override settings in this object with settings from the specified object."""
+    def __ior__(self, other: typing.Mapping[str, typing.Any] | list[typing.Any]) -> NestedDict:
+        """Override settings in this object with settings from the specified object.
+
+        >>> example = NestedDict({"KEY": {"SUB": {"NAME": "test", "OTHER": 99}}})
+        >>> example |= NestedDict({"KEY_SUB_NAME": "test2"})
+        >>> example.serialize()
+        {'KEY': {'SUB': {'NAME': 'test2', 'OTHER': 99}}}
+
+        >>> example = NestedDict(["A", "B", "C"])
+        >>> example |= NestedDict(["D", "E"])
+        >>> example.serialize()
+        ['D', 'E']
+        """
         for key, value in other.items():
             self[key] = value
         return self
@@ -149,11 +160,19 @@ class NestedDict(MutableMapping):  # type: ignore[type-arg]
         """Proxy the `__len__` method of the `__data` attribute."""
         return len(self.__data)
 
-    def __or__(self, other: typing.Mapping[str, typing.Any]) -> NestedDict:
+    def __or__(self, other: typing.Mapping[str, typing.Any] | list[typing.Any]) -> NestedDict:
         """Override the bitwise `or` operator to support merging `NestedDict` objects.
 
-        >>> ( NestedDict({"A": {"B": 0}}) | NestedDict({"A_B": 1}) ).serialize()
+        >>> ( NestedDict({"A": {"B": 0}}) | {"A_B": 1} ).serialize()
         {'A': {'B': 1}}
+
+        >>> NestedDict({"A": 0}) | [0, 1]
+        Traceback (most recent call last):
+        ...
+        TypeError: cannot merge [0, 1] (list: True) with NestedDict({'A': 0}) (list: False)
+
+        >>> NestedDict([0, {"A": 1}]) | [1, {"B": 2}]
+        NestedDict({'0': 1, '1': NestedDict({'A': 1, 'B': 2})})
         """
         return NestedDict({**self.__data, **other})
 
@@ -161,11 +180,15 @@ class NestedDict(MutableMapping):  # type: ignore[type-arg]
         """Use a `str` representation similar to `dict`, but wrap it in the class name."""
         return f"{self.__class__.__name__}({repr(self.__data)})"
 
-    def __ror__(self, other: MutableMapping[str, typing.Any]) -> NestedDict:
+    def __ror__(self, other: MutableMapping[str, typing.Any] | list[typing.Any]) -> NestedDict:
         """Cast the other object to a `NestedDict` when needed.
 
         >>> {"A": 0, "B": 1} | NestedDict({"A": 2})
         NestedDict({'A': 2, 'B': 1})
+
+        >>> merged_lists = ["A", "B", "C"]  | NestedDict([1, 2])
+        >>> merged_lists.serialize()
+        [1, 2]
         """
         return NestedDict(other) | self
 
@@ -187,10 +210,21 @@ class NestedDict(MutableMapping):  # type: ignore[type-arg]
         self.__data[name] = value
 
     @classmethod
-    def _ensure_structure(cls, data: dict[typing.Any, typing.Any]) -> None:
+    def _ensure_structure(
+        cls, data: typing.Mapping[typing.Any, typing.Any]
+    ) -> dict[str, typing.Any]:
         for key, maybe_nested in list(data.items()):
             if isinstance(maybe_nested, (dict, list)):
                 data[key] = NestedDict(maybe_nested)
+
+    @staticmethod
+    def _reduce(
+        base: typing.MutableMapping[str, typing.Any],
+        incoming: typing.Mapping[str, typing.Any],
+    ) -> None:
+        """Delete keys from `base` that are not present in `incoming`."""
+        for key_to_remove in set(base).difference(incoming):
+            del base[key_to_remove]
 
     def get_first_match(self, nested_name: str) -> typing.Any:
         """Traverse nested settings to retrieve the value of `nested_name`.
@@ -247,12 +281,22 @@ class NestedDict(MutableMapping):  # type: ignore[type-arg]
         """
         return NestedKeysView(self, sep=self.sep)
 
-    @staticmethod
+    @classmethod
     def maybe_merge(
+        cls,
         incoming: Mapping[str, typing.Any] | typing.Any,
         target: MutableMapping[str, typing.Any],
     ) -> bool:
         """If the given objects are both `typing.Mapping` subclasses, merge them.
+
+        Also check if the `target` object is an instance of this class. If it is, and if it's based
+        on a list, reduce the result to remove list elements that are not present in `incoming`.
+
+        >>> example = NestedDict({"key": [1, 2, 3], "other": "val"})
+        >>> NestedDict.maybe_merge(NestedDict({"key": [4, 5]}), example)
+        True
+        >>> example.serialize()
+        {'key': [4, 5], 'other': 'val'}
 
         Args:
             incoming (typing.Mapping[builtins.str, typing.Any] | typing.Any): test this object to
