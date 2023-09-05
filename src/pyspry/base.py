@@ -296,11 +296,11 @@ class Settings(types.ModuleType):
         return replaced_module
 
     @classmethod
-    def load(cls, file_path: Path, prefix: str | None = None) -> Settings:
+    def load(cls, file_path: Path | str, prefix: str | None = None) -> Settings:
         """Load the specified configuration file and environment variables.
 
         Args:
-            file_path (pathlib.Path): the path to the config file to load
+            file_path (pathlib.Path | builtins.str): the path to the config file to load
             prefix (typing.Optional[builtins.str]): if provided, parse all env variables containing
                 this prefix
 
@@ -308,7 +308,7 @@ class Settings(types.ModuleType):
             pyspry.base.Settings: the `Settings` object loaded from file with environment variable
                 overrides
         """  # noqa: RST301
-        with file_path.open("r", encoding="UTF-8") as f:
+        with Path(file_path).open("r", encoding="UTF-8") as f:
             config_data = {
                 str(key): value
                 for key, value in yaml.safe_load(f).items()

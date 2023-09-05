@@ -51,6 +51,7 @@ dist/
 
 # pytest
 .pytest_cache/
+.testmondata*
 
 # Python
 __pycache__/
