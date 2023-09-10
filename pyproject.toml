@@ -406,7 +406,7 @@ jobs = 1
 limit-inference-results = 100
 # List of plugins (as comma separated values of python module names) to load,
 # usually to register additional checkers.
-# load-plugins =
+load-plugins = "pylint.extensions.mccabe"
 # Pickle collected data for later comparisons.
 persistent = true
 # Minimum Python version to use for version dependent checks. Will default to the
@@ -549,6 +549,8 @@ max-returns = 6
 max-statements = 50
 # Minimum number of public methods for a class (see R0903).
 min-public-methods = 2
+# configure the maximum cyclomatic complexity (mccabe)
+max-complexity = 5
 
 [tool.pylint.exceptions]
 # Exceptions that will emit a warning when caught.
