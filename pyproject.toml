@@ -89,7 +89,8 @@ pylint = "^2.17"
 pylint-gitlab = "^1.2.0"
 certifi = ">=2023.07.22"
 
-gitpython = ">=3.1.32"  # https://nvd.nist.gov/vuln/detail/CVE-2023-40267
+gitpython = ">=3.1.32"             # https://nvd.nist.gov/vuln/detail/CVE-2023-40267
+python-semantic-release = "^8.0.8"
 
 [tool.poetry.group.pre-commit.dependencies]
 # note: these must be synchronized with `.pre-commit-config.yaml`
@@ -216,7 +217,7 @@ cmd = """
 [tool.poe.tasks.build-docs]
 help = "Run a command sequence to build the documentation suite"
 deps = ["setup-versioning"]
-uses = {PYSPRY_VERSION = "_version" }
+uses = {PYSPRY_VERSION = "_version"}
 
 sequence = [
   { cmd = "poetry install --only-root" },
