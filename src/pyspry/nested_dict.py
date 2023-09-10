@@ -9,10 +9,34 @@ from collections.abc import Mapping, MutableMapping
 # local
 from pyspry.keysview import NestedKeysView
 
-__all__ = ["NestedDict"]
+__all__ = ["NestedDict", "NestedKeyPair"]
 
 
 logger = logging.getLogger(__name__)
+
+
+class NestedKeyPair(typing.NamedTuple):
+    """A pair of keys `NestedDict` keys separated at a layer of nesting.
+
+    >>> d = NestedDict({"A": {"B": {"C": {"D": 0}}}})
+    >>> nkp = NestedKeyPair("A_B", "C_D")
+    >>> d[nkp.parents][nkp.children]
+    0
+    """
+
+    parents: str
+    children: str | None = None
+
+    @classmethod
+    def dedupe(cls, parents: str, children: str | None = None) -> NestedKeyPair:
+        """Create a new `NestedKeyPair` object without duplication.
+
+        >>> NestedKeyPair.dedupe("A_B_C_D", "A_B_C_D")
+        NestedKeyPair(parents='A_B_C_D', children=None)
+        """
+        if parents == children:
+            return cls(parents)
+        return cls(parents, children)
 
 
 class NestedDict(MutableMapping):  # type: ignore[type-arg]
@@ -81,16 +105,17 @@ class NestedDict(MutableMapping):  # type: ignore[type-arg]
 
         if args:
             data = args[0]
-            if isinstance(data, dict):
-                structured_data = self._ensure_structure(data)
-            elif isinstance(data, list):
-                self.__is_list = True
-                structured_data = self._ensure_structure(dict(enumerate(data)))
-            elif isinstance(data, self.__class__):
-                self.__is_list = data.is_list
-                structured_data = dict(data)
-            else:
-                raise TypeError(f"expected dict or list, got {type(data)}")
+            operations: dict[type, tuple[typing.Callable[[typing.Any], typing.Any], bool]] = {
+                dict: (self._ensure_structure, self.__is_list),
+                list: (lambda d: self._ensure_structure(dict(enumerate(d))), True),
+                self.__class__: (dict, getattr(data, "is_list", False)),
+            }
+
+            for data_type, (restructure, is_list) in operations.items():
+                if isinstance(data, data_type):
+                    structured_data = restructure(data)
+                    self.__is_list = is_list
+                    break
 
         restructured = self._ensure_structure(kwargs)
         structured_data.update(restructured)
@@ -217,8 +242,7 @@ class NestedDict(MutableMapping):  # type: ignore[type-arg]
         """Similar to `__getitem__`, traverse nesting at `NestedDict.sep` in the key."""
         for data_key, data_val in list(self.__data.items()):
             if data_key == name:
-                if not self.maybe_merge(value, data_val):
-                    self.__data[name] = value
+                self._merge_or_set(name, value, data_val)
                 return
 
             if name.startswith(f"{data_key}{self.sep}"):
@@ -243,6 +267,15 @@ class NestedDict(MutableMapping):  # type: ignore[type-arg]
                 out[k] = maybe_nested
         return out
 
+    def _merge_or_set(
+        self,
+        name: str,
+        incoming: typing.Mapping[str, typing.Any],
+        target: typing.MutableMapping[str, typing.Any],
+    ) -> None:
+        if not self.maybe_merge(incoming, target):
+            self.__data[name] = incoming
+
     @staticmethod
     def _reduce(
         base: typing.MutableMapping[str, typing.Any],
@@ -265,18 +298,9 @@ class NestedDict(MutableMapping):  # type: ignore[type-arg]
             builtins.ValueError: `nested_name` does not correctly identify a key in this object
                 or any of its child objects
         """  # noqa: DAR401, DAR402
-        matching_keys = sorted(
-            [
-                (key, self.maybe_strip(key, nested_name))
-                for key in self.__data
-                if str(nested_name).startswith(key)
-            ],
-            key=lambda match: len(match[0]) if match else 0,
-        )
-
-        for key, remainder in matching_keys:
+        for key, remainder in self.get_matches(nested_name):
             nested_obj = self.__data[key]
-            if key == remainder:
+            if not remainder:
                 return nested_obj
 
             try:
@@ -285,6 +309,24 @@ class NestedDict(MutableMapping):  # type: ignore[type-arg]
                 pass
 
         raise ValueError("no match found")
+
+    def get_matches(self, nested_name: str) -> list[NestedKeyPair]:
+        """Traverse nested settings to retrieve all values of `nested_name`.
+
+        Args:
+            nested_name (builtins.str): the key to break across the nested data structure
+
+        Returns:
+            list[`typing.Any`]: the values retrieved from this object or any of its child objects
+        """
+        return sorted(
+            [
+                NestedKeyPair.dedupe(key, self.maybe_strip(key, nested_name))
+                for key in self.__data
+                if str(nested_name).startswith(key)
+            ],
+            key=lambda match: len(match[0]) if match else 0,
+        )
 
     @property
     def is_list(self) -> bool:
@@ -306,6 +348,15 @@ class NestedDict(MutableMapping):  # type: ignore[type-arg]
         ['KEY', 'KEY_SUB', 'KEY_SUB_NAME', 'KEY_SUB_OTHER']
         """
         return NestedKeysView(self, sep=self.sep)
+
+    @classmethod
+    def _maybe_merge(
+        cls, key: str, val: typing.Any, target: MutableMapping[str, typing.Any]
+    ) -> None:
+        if not cls.maybe_merge(val, target[key]):
+            target[key] = val
+        elif hasattr(target[key], "is_list") and target[key].is_list:
+            cls._reduce(target[key], val)
 
     @classmethod
     def maybe_merge(
@@ -341,10 +392,7 @@ class NestedDict(MutableMapping):  # type: ignore[type-arg]
                 target[k] = v
                 continue
 
-            if not cls.maybe_merge(v, target[k]):
-                target[k] = v
-            elif hasattr(target[k], "is_list") and target[k].is_list:
-                cls._reduce(target[k], v)
+            cls._maybe_merge(k, v, target)
 
         return True
 
@@ -353,21 +401,25 @@ class NestedDict(MutableMapping):  # type: ignore[type-arg]
         """Remove the specified prefix from the given string (if present)."""
         return from_[len(prefix) + 1 :] if from_.startswith(f"{prefix}{cls.sep}") else from_
 
+    def _serialize_dict(self, strip_prefix: str) -> dict[str, typing.Any]:
+        """Serialize the internal data structure as a `dict`."""
+        return {
+            self.maybe_strip(strip_prefix, key): (
+                value.serialize() if isinstance(value, self.__class__) else value
+            )
+            for key, value in self.__data.items()
+        }
+
+    def _serialize_list(self) -> list[typing.Any]:
+        """Serialize the internal data structure as a `list`."""
+        return [
+            item.serialize() if isinstance(item, self.__class__) else item
+            for item in self.__data.values()
+        ]
+
     def serialize(self, strip_prefix: str = "") -> dict[str, typing.Any] | list[typing.Any]:
         """Convert the `NestedDict` back to a `dict` or `list`."""
-        return (
-            [
-                item.serialize() if isinstance(item, self.__class__) else item
-                for item in self.__data.values()
-            ]
-            if self.__is_list
-            else {
-                self.maybe_strip(strip_prefix, key): (
-                    value.serialize() if isinstance(value, self.__class__) else value
-                )
-                for key, value in self.__data.items()
-            }
-        )
+        return self._serialize_list() if self.__is_list else self._serialize_dict(strip_prefix)
 
     def squash(self) -> None:
         """Collapse all nested keys in the given dictionary.

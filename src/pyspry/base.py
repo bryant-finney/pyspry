@@ -8,6 +8,7 @@ import os
 import sys
 import types
 from dataclasses import dataclass
+from io import TextIOWrapper
 from pathlib import Path
 from typing import Any, Iterable
 
@@ -183,7 +184,7 @@ class Settings(types.ModuleType):
         Args:
             config (builtins.dict[builtins.str, typing.Any]): the values loaded from a JSON/YAML
                 file
-            environ (builtins.dict[builtins.str, typing.Any]): override config settings with these
+            environ (builtins.dict[builtins.str, builtins.str]): override config settings with these
                 environment variables
             prefix (builtins.str): insert / strip this prefix when needed
 
@@ -309,20 +310,9 @@ class Settings(types.ModuleType):
                 overrides
         """  # noqa: RST301
         with Path(file_path).open("r", encoding="UTF-8") as f:
-            config_data = {
-                str(key): value
-                for key, value in yaml.safe_load(f).items()
-                if not prefix or str(key).startswith(f"{prefix}{NestedDict.sep}")
-            }
+            config_data = load_yaml(f, prefix)
 
-        if prefix:
-            environ = {
-                key: value
-                for key, value in os.environ.items()
-                if key.startswith(f"{prefix}{NestedDict.sep}")
-            }
-        else:
-            environ = {}
+        environ = load_env(prefix)
 
         return cls(config_data, environ, prefix or "")
 
@@ -372,6 +362,44 @@ class Settings(types.ModuleType):
             sys.modules[module_name] = module
 
         return module
+
+
+def load_env(prefix: str | None) -> dict[str, Any]:
+    """Load the environment variables into a dictionary.
+
+    Args:
+        prefix (typing.Optional[builtins.str]): if provided, parse all env variables containing
+            this prefix
+
+    Returns:
+        dict[builtins.str, typing.Any]: the deserialized environment variables
+    """
+    return (
+        {
+            key: value
+            for key, value in os.environ.items()
+            if key.startswith(f"{prefix}{NestedDict.sep}")
+        }
+        if prefix
+        else {}
+    )
+
+
+def load_yaml(f_obj: TextIOWrapper, prefix: str | None) -> dict[str, Any]:
+    """Load the YAML file from the given file object.
+
+    Args:
+        f_obj (io.TextIOWrapper): the file object to read
+        prefix (builtins.str): if specified, filter keys to those starting with this prefix
+
+    Returns:
+        dict[builtins.str, typing.Any]: the deserialized YAML file
+    """
+    return {
+        str(key): value
+        for key, value in yaml.safe_load(f_obj).items()
+        if not prefix or str(key).startswith(f"{prefix}{NestedDict.sep}")
+    }
 
 
 logger.debug("successfully imported %s", __name__)

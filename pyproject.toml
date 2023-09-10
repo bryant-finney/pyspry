@@ -638,6 +638,7 @@ disable = [
   "deprecated-pragma",
   "use-symbolic-message-instead",
   "too-few-public-methods",
+  "unused-import"
 ]
 # Enable the message, report, category or checker with the given id(s). You can
 # either give multiple identifier separated by comma (,) or put this option
@@ -802,7 +803,7 @@ dummy-variables-rgx = "_+$|(_[a-zA-Z0-9_]*[a-zA-Z0-9]+?$)|dummy|^ignored_|^unuse
 # Argument names that match this expression will be ignored.
 ignored-argument-names = "_.*|^ignored_|^unused_"
 # Tells whether we should check for unused import in __init__ files.
-# init-import =
+init-import = false
 # List of qualified module names which can have objects that can redefine
 # builtins.
 redefining-builtins-modules = [

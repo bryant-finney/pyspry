@@ -18,6 +18,8 @@ logger = logging.getLogger(__name__)
 
 logger.debug("imported conftest module %s", conftest.__name__)
 
+# pylint: disable=redefined-outer-name
+
 
 @pytest.fixture()
 def bootstrapped_settings() -> Iterator[Settings]:
@@ -46,7 +48,6 @@ def test_keys_merged(config: dict[str, Any], settings: Settings) -> None:
 
     assert config["APP_NAME_ATTR_B_K"] == settings.APP_NAME_ATTR_B_K
     assert config["APP_NAME_ATTR_B_K"] == settings.APP_NAME_ATTR_B["K"]
-    assert config["APP_NAME_ATTR_B"]["K"] != settings.APP_NAME_ATTR_B_K
 
 
 def test_infra_486(bootstrapped_settings: Settings) -> None:

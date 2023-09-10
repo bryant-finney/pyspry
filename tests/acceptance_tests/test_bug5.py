@@ -15,9 +15,8 @@ from pyspry import Settings
 
 @pytest.mark.skipif(
     len(environ.get("PYSPRY_INSTALLED_APPS", "")) > 0,
-    reason="Skipping because the env variable PYSPRY_INSTALLED_APPS={}".format(
-        environ.get("PYSPRY_INSTALLED_APPS")
-    ),
+    reason="Skipping because the env variable PYSPRY_INSTALLED_APPS="
+    + environ.get("PYSPRY_INSTALLED_APPS", ""),
 )
 def test_shorter_env_variable(monkeypatch: MonkeyPatch) -> None:
     """Set an env variable `PYSPRY_INSTALLED_APPS` to a shorter array than its YAML."""
