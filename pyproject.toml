@@ -78,7 +78,7 @@ pytest-watch = "^4.2.0"
 pytest-xdist = "^3"
 pyupgrade = ">=2.34,<4.0"
 safety = "^2.1"
-shellcheck-py = ">=0.8,<0.10"
+shellcheck-py = {version = ">=0.8,<0.10", markers = "platform_machine != 'arm64'"}
 toml = "^0.10"
 yesqa = "^1.4"
 types-pyyaml = "^6"
