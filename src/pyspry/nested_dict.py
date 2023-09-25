@@ -209,14 +209,12 @@ class NestedDict(MutableMapping):  # type: ignore[type-arg]
                 f"{self.is_list})"
             )
 
+        self.maybe_merge(converted, self)
         if converted.is_list:
-            self.maybe_merge(converted, merged := NestedDict(self))
-            self._reduce(merged, converted)
-            return merged
+            self._reduce(self, converted)
+            return self
 
-        assert isinstance(other, Mapping)
-
-        return NestedDict({**self.__data, **other})
+        return self
 
     def __repr__(self) -> str:
         """Use a `str` representation similar to `dict`, but wrap it in the class name."""
@@ -262,7 +260,7 @@ class NestedDict(MutableMapping):  # type: ignore[type-arg]
         for key, maybe_nested in list(data.items()):
             k = str(key)
             if isinstance(maybe_nested, (dict, list)):
-                out[k] = NestedDict(maybe_nested)
+                out[k] = NestedDict(maybe_nested)  # pyright: ignore
             else:
                 out[k] = maybe_nested
         return out

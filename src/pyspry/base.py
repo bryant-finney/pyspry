@@ -178,7 +178,9 @@ class Settings(types.ModuleType):
     """This property is set by the `Settings.bootstrap()` method and removed by
     `Settings.restore()`"""
 
-    def __init__(self, config: dict[str, Any], environ: dict[str, str], prefix: str) -> None:
+    def __init__(
+        self, config: dict[str, Any] | list[Any], environ: dict[str, str], prefix: str
+    ) -> None:
         """Deserialize all JSON-encoded environment variables during initialization.
 
         Args:
@@ -204,7 +206,7 @@ class Settings(types.ModuleType):
                 parsed = value
 
             if isinstance(parsed, (dict, list)):
-                env[key] = NestedDict(parsed)
+                env[key] = NestedDict(parsed)  # pyright: ignore
             else:
                 env[key] = parsed
 
@@ -275,6 +277,18 @@ class Settings(types.ModuleType):
             else attr_val
         )
 
+    def __or__(self, other: Settings) -> Settings:
+        """Merge the two `Settings` objects, with `other` taking precedence over `self`.
+
+        >>> merged = Settings({"A": {"B": 1, "C": 2}}, {}, "") | Settings({"A": {"B": 2}}, {}, "")
+        >>> merged.A_B == merged.A_C == 2
+        True
+        """
+        if self.__config.is_list or isinstance(other_config := other.config, list):
+            raise TypeError(f"cannot merge {self} with {other}")
+        merged = self.__config | other_config
+        return Settings(merged.serialize(self.prefix), {}, self.prefix)
+
     def bootstrap(self, module_name: str) -> types.ModuleType | None:
         """Store the named module object, replacing it with `self` to bootstrap the import mechanic.
 
@@ -295,6 +309,16 @@ class Settings(types.ModuleType):
         self.module_container = ModuleContainer(name=module_name, module=replaced_module)
         sys.modules[module_name] = self
         return replaced_module
+
+    @property
+    def config(self) -> dict[str, Any] | list[Any]:
+        """Return a copy of the serialized data structure.
+
+        >>> s = Settings({"A": {"B": [1, 2, 3]}}, {}, "")
+        >>> s.config
+        {'A': {'B': [1, 2, 3]}}
+        """
+        return self.__config.serialize(self.prefix)
 
     @classmethod
     def load(cls, file_path: Path | str, prefix: str | None = None) -> Settings:
