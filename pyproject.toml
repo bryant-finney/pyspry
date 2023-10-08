@@ -14,7 +14,7 @@ homepage = "https://bfosi.gitlab.io/pyspry/pyspry.html"
 license = "MIT"
 readme = "README.md"
 repository = "https://gitlab.com/bfosi/pyspry"
-exclude = ["src/pyspry/conftest.py"]
+exclude = ["src/pyspry/conftest.py", "src/pyspry/pytest_fixtures.py"]
 classifiers = [
   "Intended Audience :: Developers",
   "License :: OSI Approved :: MIT License",
@@ -173,6 +173,7 @@ fail_under = 50
 precision = 1
 show_missing = true
 skip_covered = true
+# omit = [ "src/pyspry/pytest_fixtures.py" ]
 
 [tool.coverage.run]
 # https://coverage.readthedocs.io/en/latest/config.html#run
@@ -220,7 +221,7 @@ convention = "google"
 addopts = "--color=yes --ignore=src/pyspry/settings.py --doctest-modules --failed-first --strict-config --strict-markers --verbosity=2"
 doctest_optionflags = "ELLIPSIS IGNORE_EXCEPTION_DETAIL"
 looponfailroots = ["./src"]
-filterwarnings = ["error", "ignore::DeprecationWarning"]
+filterwarnings = ["error", "ignore:The --looponfail command line argument and looponfailroots config variable are deprecated:DeprecationWarning"]
 testpaths = ["src", "tests"]
 xfail_strict = true
 
