@@ -8,8 +8,8 @@ from typing import Any
 from pyspry.nested_dict import NestedDict
 
 
-def test_nested_dict_keys(config: dict[str, Any]) -> None:
+def test_nested_dict_keys(configuration: dict[str, Any]) -> None:
     """Verify the nested-structure-traversing setting has been consumed."""
-    nested_dict = NestedDict(config)
+    nested_dict = NestedDict(configuration)
     assert "APP_NAME_ATTR_B_K" in list(nested_dict.keys())
     assert "APP_NAME" not in list(nested_dict.keys())

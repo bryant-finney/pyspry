@@ -2,4 +2,4 @@
 from __future__ import annotations
 
 # local
-from pyspry.conftest import CONFIG_YAML, config, config_path, settings  # noqa: F401
+from pyspry.conftest import CONFIG_YAML, config_path, configuration, settings  # noqa: F401

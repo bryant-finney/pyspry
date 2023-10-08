@@ -34,7 +34,7 @@ CONFIG_YAML = """
 
 
 @pytest.fixture(scope="session")
-def config() -> dict[str, Any]:
+def configuration() -> dict[str, Any]:
     """Provide a `dict` containing dummy config settings.
 
     Returns:
@@ -78,7 +78,7 @@ def monkey_attr_a(monkeypatch: MonkeyPatch) -> dict[str, str]:
 
 @pytest.fixture(scope="session")
 def config_path(
-    tmp_path_factory: TempPathFactory, worker_id: str, config: dict[str, Any]
+    tmp_path_factory: TempPathFactory, worker_id: str, configuration: dict[str, Any]
 ) -> Iterator[Path]:
     """Create a test configuration file in the machine's temporary directory.
 
@@ -96,7 +96,7 @@ def config_path(
     config_path = tmp / "config.yml"
 
     with open(config_path, "w", encoding="UTF-8") as f:
-        yaml.dump(config, f, indent=2)
+        yaml.dump(configuration, f, indent=2)
 
     try:
         yield config_path

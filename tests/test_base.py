@@ -38,16 +38,16 @@ def bootstrapped_settings() -> Iterator[Settings]:
         settings.restore()
 
 
-def test_keys_merged(config: dict[str, Any], settings: Settings) -> None:
+def test_keys_merged(configuration: dict[str, Any], settings: Settings) -> None:
     """Verify that nested keys are properly merged."""
     attr_names = ["APP_NAME_ATTR_B", "APP_NAME_ATTR_B_K"]
-    sources: list[dict[str, Any] | Settings] = [config, settings]
+    sources: list[dict[str, Any] | Settings] = [configuration, settings]
 
     for attr_name, source in product(attr_names, sources):
         assert attr_name in source
 
-    assert config["APP_NAME_ATTR_B_K"] == settings.APP_NAME_ATTR_B_K
-    assert config["APP_NAME_ATTR_B_K"] == settings.APP_NAME_ATTR_B["K"]
+    assert configuration["APP_NAME_ATTR_B_K"] == settings.APP_NAME_ATTR_B_K
+    assert configuration["APP_NAME_ATTR_B_K"] == settings.APP_NAME_ATTR_B["K"]
 
 
 def test_infra_486(bootstrapped_settings: Settings) -> None:
