@@ -2,12 +2,14 @@
 from __future__ import annotations
 
 # stdlib
+import importlib
+import importlib.util
 import json
 import logging
 import os
 import sys
 import types
-from dataclasses import dataclass
+from importlib.machinery import ModuleSpec
 from io import TextIOWrapper
 from pathlib import Path
 from typing import Any, Iterable
@@ -18,114 +20,12 @@ import yaml
 # local
 from pyspry.nested_dict import NestedDict
 
-__all__ = ["ModuleContainer", "Null", "Settings"]
+__all__ = ["Settings"]
 
 logger = logging.getLogger(__name__)
 
 
-class NullMeta(type):
-    """Classes using this ``metaclass`` return themselves for every operation / interaction."""
-
-    def _null_operator(cls, *__o: Any) -> NullMeta:
-        return cls
-
-    __add__ = _null_operator
-
-    def __bool__(cls) -> bool:
-        # noqa: D105  # docstring -> noise for this method
-        return bool(None)
-
-    def __call__(cls, *args: Any, **kwargs: Any) -> NullMeta:
-        # noqa: D102  # docstring -> noise for this method
-        return cls
-
-    __div__ = _null_operator
-
-    def __eq__(cls, __o: object) -> bool:
-        """Check ``cls`` for equivalence, as well as ``None``."""
-        return __o is cls or __o is None
-
-    def __getattr__(cls, __name: str) -> NullMeta:
-        """Unless `__name` starts with `_`, return the `NullMeta` class instance.
-
-        The check for a `_` prefix allows Python's internal mechanics (such as the `__dict__`
-        or `__doc__` attributes) to function correctly.
-        """
-        if __name.startswith("_"):
-            return super().__getattribute__(__name)  # type: ignore[no-any-return]
-        return cls._null_operator(__name)
-
-    __getitem__ = _null_operator
-    __mod__ = _null_operator
-    __mul__ = _null_operator
-    __or__ = _null_operator  # type: ignore[assignment]
-    __radd__ = _null_operator
-    __rmod__ = _null_operator
-    __rmul__ = _null_operator
-    __rsub__ = _null_operator
-    __rtruediv__ = _null_operator
-    __sub__ = _null_operator
-    __truediv__ = _null_operator
-
-    def __new__(cls: type, name: str, bases: tuple[type], dct: dict[str, Any]) -> Any:
-        """Create new `class` instances from this `metaclass`."""
-        return super().__new__(cls, name, bases, dct)  # type: ignore[misc]
-
-    def __repr__(cls) -> str:
-        # noqa: D105  # docstring -> noise for this method
-        return "Null"
-
-
-class Null(metaclass=NullMeta):
-    """Define a class which returns itself for all interactions.
-
-    >>> Null == None, Null is None
-    (True, False)
-
-    >>> for result in [
-    ...     Null(),
-    ...     Null[0],
-    ...     Null["any-key"],
-    ...     Null.any_attr,
-    ...     Null().any_attr,
-    ...     Null + 5,
-    ...     Null - 5,
-    ...     Null * 5,
-    ...     Null / 5,
-    ...     Null % 5,
-    ...     5 + Null,
-    ...     5 - Null,
-    ...     5 * Null,
-    ...     5 / Null,
-    ...     5 % Null,
-    ... ]:
-    ...     assert result is Null, result
-
-    >>> str(Null)
-    'Null'
-
-    >>> bool(Null)
-    False
-
-    Null is always false-y:
-
-    >>> Null or "None"
-    'None'
-    """
-
-
-@dataclass
-class ModuleContainer:
-    """Pair the instance of a module with its name."""
-
-    name: str
-    """Absolute import path of the module, e.g. `pyspry.settings`."""
-
-    module: types.ModuleType | None
-    """The module pulled from `sys.modules`, or `None` if it hadn't already been imported."""
-
-
-class Settings(types.ModuleType):
+class Settings:
     """Store settings from environment variables and a config file.
 
     # Usage
@@ -173,10 +73,6 @@ class Settings(types.ModuleType):
 
     prefix: str
     """Only load settings whose names start with this prefix."""
-
-    module_container: ModuleContainer | type[Null] = Null
-    """This property is set by the `Settings.bootstrap()` method and removed by
-    `Settings.restore()`"""
 
     def __init__(
         self, config: dict[str, Any] | list[Any], environ: dict[str, str], prefix: str
@@ -235,7 +131,7 @@ class Settings(types.ModuleType):
         )
 
     def __getattr__(self, name: str) -> Any:
-        """Prioritize retrieving values from environment variables, falling back to the file config.
+        """Retrieve the setting from `self.__config`.
 
         Args:
             name (str): the name of the setting to retrieve
@@ -246,20 +142,7 @@ class Settings(types.ModuleType):
         try:
             return self.__getattr_override(name)
         except (AttributeError, TypeError):
-            return self.__getattr_base(name)
-
-    def __getattr_base(self, name: str) -> Any:
-        try:
             return super().__getattribute__(name)
-        except AttributeError:
-            pass
-
-        try:
-            return getattr(self.module_container.module, name)
-        except AttributeError:
-            pass
-
-        raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{name}'")
 
     def __getattr_override(self, name: str) -> Any:
         attr_name = self.maybe_add_prefix(name)
@@ -283,32 +166,18 @@ class Settings(types.ModuleType):
         >>> merged = Settings({"A": {"B": 1, "C": 2}}, {}, "") | Settings({"A": {"B": 2}}, {}, "")
         >>> merged.A_B == merged.A_C == 2
         True
+
+        Lists cannot be merged:
+
+            >>> Settings([1, 2, 3], {}, "") | {"A": {"B": 1}}
+            Traceback (most recent call last):
+            ...
+            TypeError: cannot merge <pyspry.base.Settings object at ...> with {'A': {'B': 1}}
         """
         if self.__config.is_list or isinstance(other_config := other.config, list):
             raise TypeError(f"cannot merge {self} with {other}")
         merged = self.__config | other_config
         return Settings(merged.serialize(self.prefix), {}, self.prefix)
-
-    def bootstrap(self, module_name: str) -> types.ModuleType | None:
-        """Store the named module object, replacing it with `self` to bootstrap the import mechanic.
-
-        This object will replace the named module in `sys.modules`.
-
-        Args:
-            module_name (builtins.str): the name of the module to replace
-
-        Returns:
-            typing.Optional[types.ModuleType]: the module object that was replaced, or `None` if the
-                module wasn't already in `sys.modules`
-        """
-        logger.info("replacing module '%s' with self", module_name)
-        try:
-            replaced_module = sys.modules[module_name]
-        except KeyError:
-            replaced_module = None
-        self.module_container = ModuleContainer(name=module_name, module=replaced_module)
-        sys.modules[module_name] = self
-        return replaced_module
 
     @property
     def config(self) -> dict[str, Any] | list[Any]:
@@ -353,39 +222,103 @@ class Settings(types.ModuleType):
             return f"{self.prefix}{self.__config.sep}{name}"
         return name
 
-    def restore(self) -> types.ModuleType | None:
-        """Remove `self` from `sys.modules` and restore the module that was bootstrapped.
 
-        When a module is bootstrapped, it is replaced by a `Settings` object:
+class SettingsContainer(types.ModuleType):
+    """Provide the machinery to create a `Settings` object on import.
 
-        >>> type(sys.modules["pyspry.settings"])
-        <class 'pyspry.base.Settings'>
+    This class implements a
+    [delegation pattern](https://medium.com/anymind-group/importance-of-delegation-in-python-20c3160c93ab)
+    to proxy attributes of its `Settings` object:
 
-        Calling this method reverts the bootstrapping:
+      - `Settings` is responsible for accessing items in its `pyspry.NestedDict`
+      - this class is responsible for instantiating the `Settings` object and interfacing with
+        Python's import mechanisms
+    """
 
-        >>> mod = settings.restore()
-        >>> type(sys.modules["pyspry.settings"])
-        <class 'module'>
+    VARNAME_CONFIG_PATH = "PYSPRY_CONFIG_PATH"
+    """The name of the environment variable identifying the path to the config file."""
 
-        >>> mod is sys.modules["pyspry.settings"]
-        True
-        """  # noqa: F821
-        if self.module_container is Null:
-            return None
+    VARNAME_VAR_PREFIX = "PYSPRY_VAR_PREFIX"
+    """The name of the environment variable identifying the prefix for environment variables."""
 
-        module_container: ModuleContainer = self.module_container  # type: ignore[assignment]
+    __name__: str
+    """The name of the module that has been bootstrapped by this object."""
 
-        module_name, module = module_container.name, module_container.module
-        self.module_container = Null
+    __spec__: ModuleSpec | None
+    """The `ModuleSpec` object is used by `importlib` internals."""
 
-        logger.info("restoring '%s' and removing self from `sys.modules`", module_name)
+    __settings: Settings
+    """Store the `pyspry.Settings` object that was initialized from the config file and environment
+    variables"""
 
-        if not module:
-            del sys.modules[module_name]
+    def __init__(self, module_name: str, spec: ModuleSpec | None, settings: Settings) -> None:
+        # these properties are used by `importlib.reload()`
+        self.__name__ = module_name
+        self.__spec__ = spec
+
+        self.__settings = settings
+
+    def __contains__(self, obj: Any) -> bool:
+        """Thin wrapper around `Settings.__contains__`."""
+        return obj in self.__settings
+
+    def __dir__(self) -> Iterable[str]:
+        """Thin wrapper around `Settings.__dir__`."""
+        return dir(self.__settings)
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self.__settings, name)
+
+    def __getattribute__(self, name: str) -> Any:
+        """Retrieve the setting from `self.__config`.
+
+        Args:
+            name (str): the name of the setting to retrieve
+
+        Returns:
+            `Any`: the value of the setting
+        """
+        return super().__getattribute__(name)
+
+    def __repr__(self) -> str:
+        return repr(self.__settings)
+
+    def __setattr__(self, name: str, value: Any) -> None:
+        if name in self.__class__.__annotations__:
+            super().__setattr__(name, value)
         else:
-            sys.modules[module_name] = module
+            setattr(self.__settings, name, value)
 
-        return module
+    def __str__(self) -> str:
+        return yaml.dump(self.__settings.config, indent=2)
+
+    @classmethod
+    def bootstrap(cls, module_name: str) -> SettingsContainer:
+        """Store the named module object, replacing it with `self` to bootstrap the import mechanic.
+
+        This object will replace the named module in `sys.modules`.
+
+        Args:
+            module_name (builtins.str): the name of the module to replace
+
+        Returns:
+            typing.Optional[types.ModuleType]: the module object that was replaced, or `None` if the
+                module wasn't already in `sys.modules`
+        """
+        if sys.modules.get(module_name):
+            logger.info("replacing module '%s' with settings object", module_name)
+            del sys.modules[module_name]
+
+        fname = Path(os.environ.get(cls.VARNAME_CONFIG_PATH, "config.yml"))
+        prefix = os.environ.get(cls.VARNAME_VAR_PREFIX, None)
+
+        settings = Settings.load(fname, prefix)
+        spec = importlib.util.find_spec(module_name)
+
+        container = cls(module_name, spec, settings)
+        sys.modules[module_name] = container
+
+        return container
 
 
 def load_env(prefix: str | None) -> dict[str, Any]:

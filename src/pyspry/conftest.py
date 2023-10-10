@@ -10,9 +10,7 @@ from typing import Any
 import pytest
 
 # local
-from pyspry import settings as pyspry_settings
-
-# pylint: disable=redefined-outer-name
+from pyspry import settings
 
 
 @pytest.fixture(autouse=True)
@@ -21,6 +19,6 @@ def settings_doctest_namespace(
 ) -> dict[str, Any]:
     """Add the path to a generated config file to the namespace exposed to `doctest` tests."""
     doctest_namespace["config_path"] = config_path
-    doctest_namespace["settings"] = pyspry_settings
+    doctest_namespace["settings"] = settings
     doctest_namespace["sys"] = sys
     return doctest_namespace
