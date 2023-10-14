@@ -98,7 +98,7 @@ class NestedDict(MutableMapping):  # type: ignore[type-arg]
         self, *args: typing.Mapping[str, typing.Any] | list[typing.Any], **kwargs: typing.Any
     ) -> None:
         """Similar to the `dict` signature, accept a single optional positional argument."""
-        if len(args) > 1:
+        if len(args) > 1:  # pragma: no cover
             raise TypeError(f"expected at most 1 argument, got {len(args)}")
         self.__is_list = False
         structured_data: dict[str, typing.Any] = {}
@@ -107,7 +107,10 @@ class NestedDict(MutableMapping):  # type: ignore[type-arg]
             data = args[0]
             operations: dict[type, tuple[typing.Callable[[typing.Any], typing.Any], bool]] = {
                 dict: (self._ensure_structure, self.__is_list),
-                list: (lambda d: self._ensure_structure(dict(enumerate(d))), True),
+                list: (
+                    lambda d: self._ensure_structure(dict(enumerate(d))),  # pyright: ignore
+                    True,
+                ),
                 self.__class__: (dict, getattr(data, "is_list", False)),
             }
 
@@ -230,10 +233,6 @@ class NestedDict(MutableMapping):  # type: ignore[type-arg]
         >>> merged_lists.serialize()
         [1, 2]
         """
-        if not isinstance(other, (dict, list)):
-            raise TypeError(
-                f"unsupported operand type(s) for |: '{type(other)}' and '{self.__class__}'"
-            )
         return NestedDict(other) | self
 
     def __setitem__(self, name: str, value: typing.Any) -> None:
@@ -432,10 +431,7 @@ class NestedDict(MutableMapping):  # type: ignore[type-arg]
             if isinstance(value, NestedDict):
                 value.squash()
             self.__data.pop(key)
-            try:
-                self[key] = value
-            except AttributeError:
-                self.__data[key] = value
+            self[key] = value
 
 
 logger.debug("successfully imported %s", __name__)

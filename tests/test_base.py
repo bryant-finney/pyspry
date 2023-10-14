@@ -12,7 +12,7 @@ from _pytest.monkeypatch import MonkeyPatch
 
 # local
 from pyspry import conftest
-from pyspry.base import Settings, SettingsContainer
+from pyspry.base import ConfigLoader, Settings, SettingsContainer
 
 logger = logging.getLogger(__name__)
 
@@ -24,8 +24,8 @@ logger.debug("imported conftest module %s", conftest.__name__)
 @pytest.fixture()
 def bootstrapped_settings(monkeypatch: MonkeyPatch) -> SettingsContainer:
     """Bootstrap a module named `__bootstrapped_settings` in the same way as `pyspry.settings`."""
-    monkeypatch.setenv(SettingsContainer.VARNAME_CONFIG_PATH, "sample-config.yml")
-    monkeypatch.setenv(SettingsContainer.VARNAME_VAR_PREFIX, "PYSPRY")
+    monkeypatch.setenv(ConfigLoader.VARNAME_CONFIG_PATH, "sample-config.yml")
+    monkeypatch.setenv(ConfigLoader.VARNAME_VAR_PREFIX, "PYSPRY")
 
     return SettingsContainer.bootstrap("__bootstrapped_settings")
 

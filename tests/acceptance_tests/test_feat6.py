@@ -3,31 +3,35 @@ from __future__ import annotations
 
 # stdlib
 import importlib
+import json
 from pathlib import Path
 
 # third party
 import pytest
+import yaml
+from _pytest.monkeypatch import MonkeyPatch
 from _pytest.tmpdir import TempPathFactory
 
 # local
-from pyspry.base import SettingsContainer
+from pyspry.base import ConfigLoader, SettingsContainer
 
-CFG_INSTALLED_APPS = """
-PYSPRY_INSTALLED_APPS:
-  - django.contrib.admin
-  - django.contrib.auth
-  - django.contrib.contenttypes
-  - django.contrib.sessions
-  - django.contrib.messages
-  - django.contrib.staticfiles
-  # django_extensions explicitly omitted
-"""
+# pylint: disable=redefined-outer-name
 
-CFG_LOGGING = """
-PYSPRY_LOGGING:
-  root:
-    level: WARNING
-"""
+PARSED_INSTALLED_APPS = {
+    "PYSPRY_INSTALLED_APPS": [
+        "django.contrib.admin",
+        "django.contrib.auth",
+        "django.contrib.contenttypes",
+        "django.contrib.sessions",
+        "django.contrib.messages",
+        "django.contrib.staticfiles",
+        # django_extensions explicitly omitted
+    ]
+}
+CFG_INSTALLED_APPS = yaml.dump(PARSED_INSTALLED_APPS, indent=2)
+
+PARSED_LOGGING = {"PYSPRY_LOGGING": {"root": {"level": "WARNING"}}}
+CFG_LOGGING = yaml.dump(PARSED_LOGGING, indent=2)
 
 
 # ⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
@@ -78,3 +82,66 @@ def test_pyspry_settings_fixture(pyspry_settings: SettingsContainer) -> None:
 
 # ⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
 #                                    acceptance tests
+
+
+@pytest.mark.setenv(PYSPRY_CONFIG_PATH="sample-config.yml", PYSPRY_VAR_PREFIX="PYSPRY")
+def test_no_overrides(pyspry_settings: SettingsContainer) -> None:
+    """Verify that the default settings do not match the values in the overrides."""
+    assert pyspry_settings.INSTALLED_APPS != PARSED_INSTALLED_APPS["PYSPRY_INSTALLED_APPS"]
+    assert pyspry_settings.LOGGING_root_level != PARSED_LOGGING["PYSPRY_LOGGING"]["root"]["level"]
+
+
+def test_installed_apps_override(cfg_installed_apps: Path, monkeypatch: MonkeyPatch) -> None:
+    """Test #6 by loading a config file that overrides the `INSTALLED_APPS` setting."""
+    # Arrange
+    monkeypatch.setenv(
+        ConfigLoader.VARNAME_CONFIG_PATH,
+        json.dumps(["sample-config.yml", str(cfg_installed_apps.absolute())]),
+    )
+    monkeypatch.setenv(ConfigLoader.VARNAME_VAR_PREFIX, "PYSPRY")
+
+    # Act
+    settings = importlib.import_module("pyspry.settings")
+    settings_ = importlib.reload(settings)
+
+    # Assert
+    assert settings_.INSTALLED_APPS == PARSED_INSTALLED_APPS["PYSPRY_INSTALLED_APPS"]
+
+
+def test_logging_override(cfg_logging: Path, monkeypatch: MonkeyPatch) -> None:
+    """Test #6 by loading a config file that overrides the `LOGGING` setting."""
+    # Arrange
+    monkeypatch.setenv(
+        ConfigLoader.VARNAME_CONFIG_PATH,
+        json.dumps(["sample-config.yml", str(cfg_logging.absolute())]),
+    )
+    monkeypatch.setenv(ConfigLoader.VARNAME_VAR_PREFIX, "PYSPRY")
+
+    # Act
+    settings = importlib.import_module("pyspry.settings")
+    settings_ = importlib.reload(settings)
+
+    # Assert
+    assert settings_.LOGGING_root_level == PARSED_LOGGING["PYSPRY_LOGGING"]["root"]["level"]
+
+
+def test_both_overrides(
+    cfg_installed_apps: Path, cfg_logging: Path, monkeypatch: MonkeyPatch
+) -> None:
+    """Verify that both files can be used to override the default settings."""
+    # Arrange
+    monkeypatch.setenv(
+        ConfigLoader.VARNAME_CONFIG_PATH,
+        json.dumps(
+            ["sample-config.yml", str(cfg_logging.absolute()), str(cfg_installed_apps.absolute())]
+        ),
+    )
+    monkeypatch.setenv(ConfigLoader.VARNAME_VAR_PREFIX, "PYSPRY")
+
+    # Act
+    settings = importlib.import_module("pyspry.settings")
+    settings_ = importlib.reload(settings)
+
+    # Assert
+    assert settings_.LOGGING_root_level == PARSED_LOGGING["PYSPRY_LOGGING"]["root"]["level"]
+    assert settings_.INSTALLED_APPS == PARSED_INSTALLED_APPS["PYSPRY_INSTALLED_APPS"]

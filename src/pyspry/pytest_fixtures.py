@@ -14,6 +14,8 @@ from _pytest.tmpdir import TempPathFactory
 # local
 from pyspry.base import Settings
 
+# pylint: disable=redefined-outer-name
+
 CONFIG_YAML = """
     APP_NAME_ATTR_A: [1, 2, 3]
     APP_NAME_EXAMPLE_PARAM: a string!

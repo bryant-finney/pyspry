@@ -243,12 +243,14 @@ cmd = "poetry self add 'poetry-dynamic-versioning[plugin]'"
 help = "Generate this package's docs"
 cmd = """
   pdoc
+    --mermaid
     --docformat google
     --output-directory docs
     --logo "$LOGO_URL"
     --favicon "$FAVICON_URL"
     --footer "$PYSPRY_VERSION"
     pyspry
+    pyspry.base
     builtins
     collections
     collections.abc
@@ -276,11 +278,13 @@ sequence = [
 help = "Use 'pdoc' to launch an HTTP server for this package's docs"
 cmd = """
   pdoc
+    --mermaid
     --docformat google
     --logo "$LOGO_URL"
     --favicon "$FAVICON_URL"
     --footer "$PYSPRY_VERSION"
     pyspry
+    pyspry.base
     builtins
     collections
     collections.abc

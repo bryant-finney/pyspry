@@ -1,4 +1,5 @@
-"""Define the base `Settings` class."""
+# noqa: D415
+""".. include:: architecture.md"""  # noqa: E501,RST201,RST214,RST215,RST301,RST499
 from __future__ import annotations
 
 # stdlib
@@ -12,7 +13,7 @@ import types
 from importlib.machinery import ModuleSpec
 from io import TextIOWrapper
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any, Callable, Iterable
 
 # third party
 import yaml
@@ -20,7 +21,7 @@ import yaml
 # local
 from pyspry.nested_dict import NestedDict
 
-__all__ = ["Settings"]
+__all__ = ["Settings", "ConfigLoader", "SettingsContainer"]
 
 logger = logging.getLogger(__name__)
 
@@ -133,18 +134,18 @@ class Settings:
     def __getattr__(self, name: str) -> Any:
         """Retrieve the setting from `self.__config`.
 
+        `Settings.__getattr__` falls back to this method automatically on `AttributeError`.
+
         Args:
             name (str): the name of the setting to retrieve
+
+        Raises:
+            AttributeError: the setting does not exist in the internal `Setting.__config`
+                dictionary
 
         Returns:
             `Any`: the value of the setting
         """
-        try:
-            return self.__getattr_override(name)
-        except (AttributeError, TypeError):
-            return super().__getattribute__(name)
-
-    def __getattr_override(self, name: str) -> Any:
         attr_name = self.maybe_add_prefix(name)
 
         try:
@@ -159,6 +160,10 @@ class Settings:
             if isinstance(attr_val, NestedDict)
             else attr_val
         )
+
+    def __getattribute__(self, name: str) -> Any:
+        """Invoke the parent method, falling back to `Settings.__getattr__()` on error."""
+        return super().__getattribute__(name)
 
     def __or__(self, other: Settings) -> Settings:
         """Merge the two `Settings` objects, with `other` taking precedence over `self`.
@@ -177,7 +182,12 @@ class Settings:
         if self.__config.is_list or isinstance(other_config := other.config, list):
             raise TypeError(f"cannot merge {self} with {other}")
         merged = self.__config | other_config
-        return Settings(merged.serialize(self.prefix), {}, self.prefix)
+        return Settings(
+            # note: explicitly exclude self.prefix from the following call (the prefixes are needed)
+            merged.serialize(),
+            {},
+            self.prefix,
+        )
 
     @property
     def config(self) -> dict[str, Any] | list[Any]:
@@ -187,7 +197,8 @@ class Settings:
         >>> s.config
         {'A': {'B': [1, 2, 3]}}
         """
-        return self.__config.serialize(self.prefix)
+        # note: explicitly exclude self.prefix from the following call (the prefixes are needed)
+        return self.__config.serialize()
 
     @classmethod
     def load(cls, file_path: Path | str, prefix: str | None = None) -> Settings:
@@ -223,6 +234,81 @@ class Settings:
         return name
 
 
+class ConfigLoader:
+    """Initialize a `Settings` object according to the config file and environment variables.
+
+    Usage:
+
+    By default, the config file is specified by an environment variable named
+    `ConfigLoader.VARNAME_CONFIG_PATH`. Similarly, the variable prefix is specified by an
+    environment variable named `ConfigLoader.VARNAME_VAR_PREFIX`:
+
+    >>> loader = ConfigLoader.create()
+    >>> settings = loader.read_settings()
+    >>> type(settings)
+    <class 'pyspry.base.Settings'>
+    """
+
+    VARNAME_CONFIG_PATH = "PYSPRY_CONFIG_PATH"
+    """The name of the environment variable identifying the path to the config file."""
+
+    VARNAME_VAR_PREFIX = "PYSPRY_VAR_PREFIX"
+    """The name of the environment variable identifying the prefix for environment variables."""
+
+    parsed: list[str] | str
+    """The parsed value of the environment variable `ConfigLoader.VARNAME_CONFIG_PATH`."""
+
+    prefix: str | None
+    """The parsed value of the environment variable `ConfigLoader.VARNAME_VAR_PREFIX`."""
+
+    def __init__(self, raw_env_var: str, prefix: str | None) -> None:  # noqa: D107
+        self.parsed = yaml.safe_load(raw_env_var)
+        self.prefix = prefix
+
+    @classmethod
+    def create(cls) -> ConfigLoader:
+        """Initialize a `ConfigLoader` object from environment variables.
+
+        - `ConfigLoader.VARNAME_CONFIG_PATH` specifies the path to one or more config files
+        - `ConfigLoader.VARNAME_VAR_PREFIX` identifies the prefix to use when parsing settings from
+          environment variables and the config file
+        """
+        raw = os.environ.get(cls.VARNAME_CONFIG_PATH, "config.yml")
+        prefix = os.environ.get(cls.VARNAME_VAR_PREFIX, None)
+        return cls(raw, prefix)
+
+    @staticmethod
+    def _from_list(paths: list[str], prefix: str | None) -> Settings:
+        all_settings = [ConfigLoader._from_str(path, prefix) for path in paths]
+        if len(all_settings) < 1:  # pragma: no cover
+            raise ValueError(
+                f"invalid encoding of environment variable {ConfigLoader.VARNAME_CONFIG_PATH}: "
+                + str(paths)
+            )
+        settings, overrides = all_settings[0], all_settings[1:]
+        for override in overrides:
+            settings |= override
+        return settings
+
+    @staticmethod
+    def _from_str(path: str, prefix: str | None) -> Settings:
+        return Settings.load(Path(path), prefix)
+
+    def read_settings(self) -> Settings:
+        """Parse a new `Settings` object from the config file and environment variables."""
+        try:
+            method: Callable[[list[str] | str, str | None], Settings] = getattr(
+                self, f"_from_{type(self.parsed).__name__}"
+            )
+        except AttributeError as e:  # pragma: no cover
+            raise TypeError(
+                f"invalid encoding of environment variable {self.VARNAME_CONFIG_PATH}: "
+                + str(self.parsed)
+            ) from e
+
+        return method(self.parsed, self.prefix)
+
+
 class SettingsContainer(types.ModuleType):
     """Provide the machinery to create a `Settings` object on import.
 
@@ -231,15 +317,9 @@ class SettingsContainer(types.ModuleType):
     to proxy attributes of its `Settings` object:
 
       - `Settings` is responsible for accessing items in its `pyspry.NestedDict`
-      - this class is responsible for instantiating the `Settings` object and interfacing with
-        Python's import mechanisms
-    """
-
-    VARNAME_CONFIG_PATH = "PYSPRY_CONFIG_PATH"
-    """The name of the environment variable identifying the path to the config file."""
-
-    VARNAME_VAR_PREFIX = "PYSPRY_VAR_PREFIX"
-    """The name of the environment variable identifying the prefix for environment variables."""
+      - `SettingsContainer` is responsible for instantiating the `Settings` object and interfacing
+        with Python's import mechanisms
+    """  # pylint: disable=line-too-long
 
     __name__: str
     """The name of the module that has been bootstrapped by this object."""
@@ -251,45 +331,50 @@ class SettingsContainer(types.ModuleType):
     """Store the `pyspry.Settings` object that was initialized from the config file and environment
     variables"""
 
-    def __init__(self, module_name: str, spec: ModuleSpec | None, settings: Settings) -> None:
-        # these properties are used by `importlib.reload()`
+    def __init__(
+        self, module_name: str, spec: ModuleSpec | None, settings: Settings
+    ) -> None:  # noqa: D107
+        # these properties are used by `importlib.reload()`:
         self.__name__ = module_name
         self.__spec__ = spec
 
         self.__settings = settings
 
     def __contains__(self, obj: Any) -> bool:
-        """Thin wrapper around `Settings.__contains__`."""
+        """Thin wrapper around the `Settings` method."""
         return obj in self.__settings
 
     def __dir__(self) -> Iterable[str]:
-        """Thin wrapper around `Settings.__dir__`."""
+        """Thin wrapper around the `Settings` method."""
         return dir(self.__settings)
 
     def __getattr__(self, name: str) -> Any:
+        """Retrieve the attribute from `SettingsContainer.__settings`."""
         return getattr(self.__settings, name)
 
     def __getattribute__(self, name: str) -> Any:
-        """Retrieve the setting from `self.__config`.
-
-        Args:
-            name (str): the name of the setting to retrieve
-
-        Returns:
-            `Any`: the value of the setting
-        """
+        """Attempt to retrieve the attribute, falling back to `SettingsContainer.__getattr__()`."""
         return super().__getattribute__(name)
 
     def __repr__(self) -> str:
-        return repr(self.__settings)
+        """Control the string representation of this object.
 
-    def __setattr__(self, name: str, value: Any) -> None:
+        >>> settings = Settings({"A": {"B": 1}}, {}, "")
+        >>> SettingsContainer("module", None, settings)
+        pyspry.base.SettingsContainer('module', None, <pyspry.base.Settings object at ...>)
+        """
+        return (
+            f"{__name__}.{self.__class__.__name__}("
+            f"'{self.__name__}', {self.__spec__}, {repr(self.__settings)})"
+        )
+
+    def __setattr__(self, name: str, value: Any) -> None:  # noqa: D105
         if name in self.__class__.__annotations__:
             super().__setattr__(name, value)
         else:
             setattr(self.__settings, name, value)
 
-    def __str__(self) -> str:
+    def __str__(self) -> str:  # noqa: D105
         return yaml.dump(self.__settings.config, indent=2)
 
     @classmethod
@@ -309,11 +394,8 @@ class SettingsContainer(types.ModuleType):
             logger.info("replacing module '%s' with settings object", module_name)
             del sys.modules[module_name]
 
-        fname = Path(os.environ.get(cls.VARNAME_CONFIG_PATH, "config.yml"))
-        prefix = os.environ.get(cls.VARNAME_VAR_PREFIX, None)
-
-        settings = Settings.load(fname, prefix)
         spec = importlib.util.find_spec(module_name)
+        settings = ConfigLoader.create().read_settings()
 
         container = cls(module_name, spec, settings)
         sys.modules[module_name] = container
