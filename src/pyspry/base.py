@@ -1,15 +1,19 @@
-"""Define the base `Settings` class."""
+# noqa: D415
+""".. include:: architecture.md"""  # noqa: E501,RST201,RST214,RST215,RST301,RST499
 from __future__ import annotations
 
 # stdlib
+import importlib
+import importlib.util
 import json
 import logging
 import os
 import sys
 import types
-from dataclasses import dataclass
+from importlib.machinery import ModuleSpec
+from io import TextIOWrapper
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any, Callable, Iterable
 
 # third party
 import yaml
@@ -17,114 +21,12 @@ import yaml
 # local
 from pyspry.nested_dict import NestedDict
 
-__all__ = ["ModuleContainer", "Null", "Settings"]
+__all__ = ["Settings", "ConfigLoader", "SettingsContainer"]
 
 logger = logging.getLogger(__name__)
 
 
-class NullMeta(type):
-    """Classes using this ``metaclass`` return themselves for every operation / interaction."""
-
-    def _null_operator(cls, *__o: Any) -> NullMeta:
-        return cls
-
-    __add__ = _null_operator
-
-    def __bool__(cls) -> bool:
-        # noqa: D105  # docstring -> noise for this method
-        return bool(None)
-
-    def __call__(cls, *args: Any, **kwargs: Any) -> NullMeta:
-        # noqa: D102  # docstring -> noise for this method
-        return cls
-
-    __div__ = _null_operator
-
-    def __eq__(cls, __o: object) -> bool:
-        """Check ``cls`` for equivalence, as well as ``None``."""
-        return __o is cls or __o is None
-
-    def __getattr__(cls, __name: str) -> NullMeta:
-        """Unless `__name` starts with `_`, return the `NullMeta` class instance.
-
-        The check for a `_` prefix allows Python's internal mechanics (such as the `__dict__`
-        or `__doc__` attributes) to function correctly.
-        """
-        if __name.startswith("_"):
-            return super().__getattribute__(__name)  # type: ignore[no-any-return]
-        return cls._null_operator(__name)
-
-    __getitem__ = _null_operator
-    __mod__ = _null_operator
-    __mul__ = _null_operator
-    __or__ = _null_operator  # type: ignore[assignment]
-    __radd__ = _null_operator
-    __rmod__ = _null_operator
-    __rmul__ = _null_operator
-    __rsub__ = _null_operator
-    __rtruediv__ = _null_operator
-    __sub__ = _null_operator
-    __truediv__ = _null_operator
-
-    def __new__(cls: type, name: str, bases: tuple[type], dct: dict[str, Any]) -> Any:
-        """Create new `class` instances from this `metaclass`."""
-        return super().__new__(cls, name, bases, dct)  # type: ignore[misc]
-
-    def __repr__(cls) -> str:
-        # noqa: D105  # docstring -> noise for this method
-        return "Null"
-
-
-class Null(metaclass=NullMeta):
-    """Define a class which returns itself for all interactions.
-
-    >>> Null == None, Null is None
-    (True, False)
-
-    >>> for result in [
-    ...     Null(),
-    ...     Null[0],
-    ...     Null["any-key"],
-    ...     Null.any_attr,
-    ...     Null().any_attr,
-    ...     Null + 5,
-    ...     Null - 5,
-    ...     Null * 5,
-    ...     Null / 5,
-    ...     Null % 5,
-    ...     5 + Null,
-    ...     5 - Null,
-    ...     5 * Null,
-    ...     5 / Null,
-    ...     5 % Null,
-    ... ]:
-    ...     assert result is Null, result
-
-    >>> str(Null)
-    'Null'
-
-    >>> bool(Null)
-    False
-
-    Null is always false-y:
-
-    >>> Null or "None"
-    'None'
-    """
-
-
-@dataclass
-class ModuleContainer:
-    """Pair the instance of a module with its name."""
-
-    name: str
-    """Absolute import path of the module, e.g. `pyspry.settings`."""
-
-    module: types.ModuleType | None
-    """The module pulled from `sys.modules`, or `None` if it hadn't already been imported."""
-
-
-class Settings(types.ModuleType):
+class Settings:
     """Store settings from environment variables and a config file.
 
     # Usage
@@ -173,17 +75,15 @@ class Settings(types.ModuleType):
     prefix: str
     """Only load settings whose names start with this prefix."""
 
-    module_container: ModuleContainer | type[Null] = Null
-    """This property is set by the `Settings.bootstrap()` method and removed by
-    `Settings.restore()`"""
-
-    def __init__(self, config: dict[str, Any], environ: dict[str, str], prefix: str) -> None:
+    def __init__(
+        self, config: dict[str, Any] | list[Any], environ: dict[str, str], prefix: str
+    ) -> None:
         """Deserialize all JSON-encoded environment variables during initialization.
 
         Args:
             config (builtins.dict[builtins.str, typing.Any]): the values loaded from a JSON/YAML
                 file
-            environ (builtins.dict[builtins.str, typing.Any]): override config settings with these
+            environ (builtins.dict[builtins.str, builtins.str]): override config settings with these
                 environment variables
             prefix (builtins.str): insert / strip this prefix when needed
 
@@ -203,7 +103,7 @@ class Settings(types.ModuleType):
                 parsed = value
 
             if isinstance(parsed, (dict, list)):
-                env[key] = NestedDict(parsed)
+                env[key] = NestedDict(parsed)  # pyright: ignore
             else:
                 env[key] = parsed
 
@@ -232,33 +132,20 @@ class Settings(types.ModuleType):
         )
 
     def __getattr__(self, name: str) -> Any:
-        """Prioritize retrieving values from environment variables, falling back to the file config.
+        """Retrieve the setting from `self.__config`.
+
+        `Settings.__getattr__` falls back to this method automatically on `AttributeError`.
 
         Args:
             name (str): the name of the setting to retrieve
 
+        Raises:
+            AttributeError: the setting does not exist in the internal `Setting.__config`
+                dictionary
+
         Returns:
             `Any`: the value of the setting
         """
-        try:
-            return self.__getattr_override(name)
-        except (AttributeError, TypeError):
-            return self.__getattr_base(name)
-
-    def __getattr_base(self, name: str) -> Any:
-        try:
-            return super().__getattribute__(name)
-        except AttributeError:
-            pass
-
-        try:
-            return getattr(self.module_container.module, name)
-        except AttributeError:
-            pass
-
-        raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{name}'")
-
-    def __getattr_override(self, name: str) -> Any:
         attr_name = self.maybe_add_prefix(name)
 
         try:
@@ -274,26 +161,44 @@ class Settings(types.ModuleType):
             else attr_val
         )
 
-    def bootstrap(self, module_name: str) -> types.ModuleType | None:
-        """Store the named module object, replacing it with `self` to bootstrap the import mechanic.
+    def __getattribute__(self, name: str) -> Any:
+        """Invoke the parent method, falling back to `Settings.__getattr__()` on error."""
+        return super().__getattribute__(name)
 
-        This object will replace the named module in `sys.modules`.
+    def __or__(self, other: Settings) -> Settings:
+        """Merge the two `Settings` objects, with `other` taking precedence over `self`.
 
-        Args:
-            module_name (builtins.str): the name of the module to replace
+        >>> merged = Settings({"A": {"B": 1, "C": 2}}, {}, "") | Settings({"A": {"B": 2}}, {}, "")
+        >>> merged.A_B == merged.A_C == 2
+        True
 
-        Returns:
-            typing.Optional[types.ModuleType]: the module object that was replaced, or `None` if the
-                module wasn't already in `sys.modules`
+        Lists cannot be merged:
+
+            >>> Settings([1, 2, 3], {}, "") | {"A": {"B": 1}}
+            Traceback (most recent call last):
+            ...
+            TypeError: cannot merge <pyspry.base.Settings object at ...> with {'A': {'B': 1}}
         """
-        logger.info("replacing module '%s' with self", module_name)
-        try:
-            replaced_module = sys.modules[module_name]
-        except KeyError:
-            replaced_module = None
-        self.module_container = ModuleContainer(name=module_name, module=replaced_module)
-        sys.modules[module_name] = self
-        return replaced_module
+        if self.__config.is_list or isinstance(other_config := other.config, list):
+            raise TypeError(f"cannot merge {self} with {other}")
+        merged = self.__config | other_config
+        return Settings(
+            # note: explicitly exclude self.prefix from the following call (the prefixes are needed)
+            merged.serialize(),
+            {},
+            self.prefix,
+        )
+
+    @property
+    def config(self) -> dict[str, Any] | list[Any]:
+        """Return a copy of the serialized data structure.
+
+        >>> s = Settings({"A": {"B": [1, 2, 3]}}, {}, "")
+        >>> s.config
+        {'A': {'B': [1, 2, 3]}}
+        """
+        # note: explicitly exclude self.prefix from the following call (the prefixes are needed)
+        return self.__config.serialize()
 
     @classmethod
     def load(cls, file_path: Path | str, prefix: str | None = None) -> Settings:
@@ -309,20 +214,9 @@ class Settings(types.ModuleType):
                 overrides
         """  # noqa: RST301
         with Path(file_path).open("r", encoding="UTF-8") as f:
-            config_data = {
-                str(key): value
-                for key, value in yaml.safe_load(f).items()
-                if not prefix or str(key).startswith(f"{prefix}{NestedDict.sep}")
-            }
+            config_data = load_yaml(f, prefix)
 
-        if prefix:
-            environ = {
-                key: value
-                for key, value in os.environ.items()
-                if key.startswith(f"{prefix}{NestedDict.sep}")
-            }
-        else:
-            environ = {}
+        environ = load_env(prefix)
 
         return cls(config_data, environ, prefix or "")
 
@@ -339,39 +233,212 @@ class Settings(types.ModuleType):
             return f"{self.prefix}{self.__config.sep}{name}"
         return name
 
-    def restore(self) -> types.ModuleType | None:
-        """Remove `self` from `sys.modules` and restore the module that was bootstrapped.
 
-        When a module is bootstrapped, it is replaced by a `Settings` object:
+class ConfigLoader:
+    """Initialize a `Settings` object according to the config file and environment variables.
 
-        >>> type(sys.modules["pyspry.settings"])
-        <class 'pyspry.base.Settings'>
+    Usage:
 
-        Calling this method reverts the bootstrapping:
+    By default, the config file is specified by an environment variable named
+    `ConfigLoader.VARNAME_CONFIG_PATH`. Similarly, the variable prefix is specified by an
+    environment variable named `ConfigLoader.VARNAME_VAR_PREFIX`:
 
-        >>> mod = settings.restore()
-        >>> type(sys.modules["pyspry.settings"])
-        <class 'module'>
+    >>> loader = ConfigLoader.create()
+    >>> settings = loader.read_settings()
+    >>> type(settings)
+    <class 'pyspry.base.Settings'>
+    """
 
-        >>> mod is sys.modules["pyspry.settings"]
-        True
-        """  # noqa: F821
-        if self.module_container is Null:
-            return None
+    VARNAME_CONFIG_PATH = "PYSPRY_CONFIG_PATH"
+    """The name of the environment variable identifying the path to the config file."""
 
-        module_container: ModuleContainer = self.module_container  # type: ignore[assignment]
+    VARNAME_VAR_PREFIX = "PYSPRY_VAR_PREFIX"
+    """The name of the environment variable identifying the prefix for environment variables."""
 
-        module_name, module = module_container.name, module_container.module
-        self.module_container = Null
+    parsed: list[str] | str
+    """The parsed value of the environment variable `ConfigLoader.VARNAME_CONFIG_PATH`."""
 
-        logger.info("restoring '%s' and removing self from `sys.modules`", module_name)
+    prefix: str | None
+    """The parsed value of the environment variable `ConfigLoader.VARNAME_VAR_PREFIX`."""
 
-        if not module:
-            del sys.modules[module_name]
+    def __init__(self, raw_env_var: str, prefix: str | None) -> None:  # noqa: D107
+        self.parsed = yaml.safe_load(raw_env_var)
+        self.prefix = prefix
+
+    @classmethod
+    def create(cls) -> ConfigLoader:
+        """Initialize a `ConfigLoader` object from environment variables.
+
+        - `ConfigLoader.VARNAME_CONFIG_PATH` specifies the path to one or more config files
+        - `ConfigLoader.VARNAME_VAR_PREFIX` identifies the prefix to use when parsing settings from
+          environment variables and the config file
+        """
+        raw = os.environ.get(cls.VARNAME_CONFIG_PATH, "config.yml")
+        prefix = os.environ.get(cls.VARNAME_VAR_PREFIX, None)
+        return cls(raw, prefix)
+
+    @staticmethod
+    def _from_list(paths: list[str], prefix: str | None) -> Settings:
+        all_settings = [ConfigLoader._from_str(path, prefix) for path in paths]
+        if len(all_settings) < 1:  # pragma: no cover
+            raise ValueError(
+                f"invalid encoding of environment variable {ConfigLoader.VARNAME_CONFIG_PATH}: "
+                + str(paths)
+            )
+        settings, overrides = all_settings[0], all_settings[1:]
+        for override in overrides:
+            settings |= override
+        return settings
+
+    @staticmethod
+    def _from_str(path: str, prefix: str | None) -> Settings:
+        return Settings.load(Path(path), prefix)
+
+    def read_settings(self) -> Settings:
+        """Parse a new `Settings` object from the config file and environment variables."""
+        try:
+            method: Callable[[list[str] | str, str | None], Settings] = getattr(
+                self, f"_from_{type(self.parsed).__name__}"
+            )
+        except AttributeError as e:  # pragma: no cover
+            raise TypeError(
+                f"invalid encoding of environment variable {self.VARNAME_CONFIG_PATH}: "
+                + str(self.parsed)
+            ) from e
+
+        return method(self.parsed, self.prefix)
+
+
+class SettingsContainer(types.ModuleType):
+    """Provide the machinery to create a `Settings` object on import.
+
+    This class implements a
+    [delegation pattern](https://medium.com/anymind-group/importance-of-delegation-in-python-20c3160c93ab)
+    to proxy attributes of its `Settings` object:
+
+      - `Settings` is responsible for accessing items in its `pyspry.NestedDict`
+      - `SettingsContainer` is responsible for instantiating the `Settings` object and interfacing
+        with Python's import mechanisms
+    """  # pylint: disable=line-too-long
+
+    __name__: str
+    """The name of the module that has been bootstrapped by this object."""
+
+    __spec__: ModuleSpec | None
+    """The `ModuleSpec` object is used by `importlib` internals."""
+
+    __settings: Settings
+    """Store the `pyspry.Settings` object that was initialized from the config file and environment
+    variables"""
+
+    def __init__(
+        self, module_name: str, spec: ModuleSpec | None, settings: Settings
+    ) -> None:  # noqa: D107
+        # these properties are used by `importlib.reload()`:
+        self.__name__ = module_name
+        self.__spec__ = spec
+
+        self.__settings = settings
+
+    def __contains__(self, obj: Any) -> bool:
+        """Thin wrapper around the `Settings` method."""
+        return obj in self.__settings
+
+    def __dir__(self) -> Iterable[str]:
+        """Thin wrapper around the `Settings` method."""
+        return dir(self.__settings)
+
+    def __getattr__(self, name: str) -> Any:
+        """Retrieve the attribute from `SettingsContainer.__settings`."""
+        return getattr(self.__settings, name)
+
+    def __getattribute__(self, name: str) -> Any:
+        """Attempt to retrieve the attribute, falling back to `SettingsContainer.__getattr__()`."""
+        return super().__getattribute__(name)
+
+    def __repr__(self) -> str:
+        """Control the string representation of this object.
+
+        >>> settings = Settings({"A": {"B": 1}}, {}, "")
+        >>> SettingsContainer("module", None, settings)
+        pyspry.base.SettingsContainer('module', None, <pyspry.base.Settings object at ...>)
+        """
+        return (
+            f"{__name__}.{self.__class__.__name__}("
+            f"'{self.__name__}', {self.__spec__}, {repr(self.__settings)})"
+        )
+
+    def __setattr__(self, name: str, value: Any) -> None:  # noqa: D105
+        if name in self.__class__.__annotations__:
+            super().__setattr__(name, value)
         else:
-            sys.modules[module_name] = module
+            setattr(self.__settings, name, value)
 
-        return module
+    def __str__(self) -> str:  # noqa: D105
+        return yaml.dump(self.__settings.config, indent=2)
+
+    @classmethod
+    def bootstrap(cls, module_name: str) -> SettingsContainer:
+        """Store the named module object, replacing it with `self` to bootstrap the import mechanic.
+
+        This object will replace the named module in `sys.modules`.
+
+        Args:
+            module_name (builtins.str): the name of the module to replace
+
+        Returns:
+            typing.Optional[types.ModuleType]: the module object that was replaced, or `None` if the
+                module wasn't already in `sys.modules`
+        """
+        if sys.modules.get(module_name):
+            logger.info("replacing module '%s' with settings object", module_name)
+            del sys.modules[module_name]
+
+        spec = importlib.util.find_spec(module_name)
+        settings = ConfigLoader.create().read_settings()
+
+        container = cls(module_name, spec, settings)
+        sys.modules[module_name] = container
+
+        return container
+
+
+def load_env(prefix: str | None) -> dict[str, Any]:
+    """Load the environment variables into a dictionary.
+
+    Args:
+        prefix (typing.Optional[builtins.str]): if provided, parse all env variables containing
+            this prefix
+
+    Returns:
+        dict[builtins.str, typing.Any]: the deserialized environment variables
+    """
+    return (
+        {
+            key: value
+            for key, value in os.environ.items()
+            if key.startswith(f"{prefix}{NestedDict.sep}")
+        }
+        if prefix
+        else {}
+    )
+
+
+def load_yaml(f_obj: TextIOWrapper, prefix: str | None) -> dict[str, Any]:
+    """Load the YAML file from the given file object.
+
+    Args:
+        f_obj (io.TextIOWrapper): the file object to read
+        prefix (builtins.str): if specified, filter keys to those starting with this prefix
+
+    Returns:
+        dict[builtins.str, typing.Any]: the deserialized YAML file
+    """
+    return {
+        str(key): value
+        for key, value in yaml.safe_load(f_obj).items()
+        if not prefix or str(key).startswith(f"{prefix}{NestedDict.sep}")
+    }
 
 
 logger.debug("successfully imported %s", __name__)

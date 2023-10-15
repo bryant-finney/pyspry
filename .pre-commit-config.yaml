@@ -83,6 +83,8 @@ repos:
     rev: 6.1.0
     hooks:
       - id: flake8
+        args:
+          - --radon-max-cc=5
         additional_dependencies:
           - flake8-bugbear
           - flake8-comprehensions
@@ -92,6 +94,7 @@ repos:
           - flake8-print
           - flake8-pytest-style
           - flake8-tidy-imports
+          - radon[toml]
 
   - repo: https://github.com/pycqa/pydocstyle
     rev: 6.3.0

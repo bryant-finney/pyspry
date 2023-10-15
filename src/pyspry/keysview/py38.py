@@ -36,14 +36,14 @@ class NestedKeysView(KeysView):  # type: ignore[type-arg]
         """
         self.sep = sep
         self.prefix = prefix
-        super().__init__(mapping)
+        super().__init__(mapping)  # pyright: ignore
 
     def __iter__(self) -> Iterator[str]:
         """Override the parent class to return a string matching layers of nesting."""
         start = f"{self.prefix}{self.sep}" if self.prefix else ""
-        for key, value in self._mapping.items():
-            if hasattr(value, "items"):
+        for key, value in self._mapping.items():  # pyright: ignore
+            if hasattr(value, "items"):  # pyright: ignore
                 yield f"{start}{key}"
-                yield from self.__class__(value, f"{start}{key}", self.sep)
+                yield from self.__class__(value, f"{start}{key}", self.sep)  # pyright: ignore
             else:
                 yield f"{start}{key}"
