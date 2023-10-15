@@ -143,6 +143,7 @@ certifi = ">=2023.07.22"
 gitpython = ">=3.1.32"             # https://nvd.nist.gov/vuln/detail/CVE-2023-40267
 python-semantic-release = "^8.0.8"
 radon = {extras = ["toml"], version = "^6.0.1"}
+lxml = {version = ">=4.9.3", python = ">=3.12"}
 
 [tool.poetry.group.pre-commit.dependencies]
 # note: these must be synchronized with `.pre-commit-config.yaml`
