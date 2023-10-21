@@ -1,10 +1,9 @@
 ---
 name: Bug report
 about: Report a bug to help us improve
-title: 'bug: ...'
+title: "bug: ..."
 labels: bug
-assignees: ''
-
+assignees: ""
 ---
 
 # Bug Report
@@ -18,9 +17,9 @@ provide detailed steps to reproduce the bug. these steps will be used to write a
 for the bug fix, so snippets of Python are welcome.
 -->
 
-1. *Step 1*
-2. *Step 2*
-3. *Step 3*
+1. _Step 1_
+2. _Step 2_
+3. _Step 3_
 4. ...
 
 ### Expected Behavior
