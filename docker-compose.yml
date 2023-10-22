@@ -7,7 +7,6 @@ services:
         UID: ${UID:-1000}
         GID: ${GID:-1000}
         PYTHON_VERSION: ${PYTHON_VERSION:-3.11}
-      context: .
       tags:
         - &commit-tag ${CI_REGISTRY_IMAGE}/dev:${PYSPRY_TAG}
         - ${CI_REGISTRY_IMAGE}/dev:${PYSPRY_BRANCH_TAG}
@@ -15,6 +14,7 @@ services:
       x-bake:
         cache-from:
           - type=registry,ref=${CI_REGISTRY_IMAGE}/dev/cache:${PYSPRY_BRANCH_TAG}
+          - type=registry,ref=${CI_REGISTRY_IMAGE}/dev:${PYSPRY_BRANCH_TAG}
           - type=registry,ref=python:${PYTHON_IMAGE_VERSION:-3.11}-slim
 
         cache-to: type=registry,ref=${CI_REGISTRY_IMAGE}/dev/cache:${PYSPRY_BRANCH_TAG}
