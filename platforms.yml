@@ -1,0 +1,6 @@
+# set platforms for multi-arch builds in a separate compose file to shorten local build times
+services:
+  dev:
+    build:
+      x-bake:
+        platforms: ["linux/amd64", "linux/arm64"]

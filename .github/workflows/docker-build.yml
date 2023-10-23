@@ -1,0 +1,115 @@
+# ⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+# Summary: Use Docker buildx to bake and push a multi-arch Docker image.
+# Image Tagging Rules:
+#   - `latest` is always the latest commit on `main`
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+name: 🐳 Docker
+
+# run this workflow for...
+#   - each push to `main`
+#   - each release tag (starting with `v`)
+#   - each pull request that changes a relevant file
+on:
+  push:
+    tags: v*
+    branches:
+      - main
+
+  pull_request:
+    paths:
+      - .github/workflows/docker-build.yml
+      - Dockerfile
+      - docker-compose.yml
+      - platforms.yml
+      - poetry.lock
+
+# ⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+
+jobs:
+  build-and-push:
+    name: Build and push Docker image
+
+    env:
+      CI_REGISTRY_IMAGE: ghcr.io/${{ github.repository }}
+      PYTHON_VERSION: "3.11"
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: ↗️ Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-tags: true
+
+      - name: 🔐 Log in to ghcr.io
+        if: github.triggering_actor == github.repository_owner
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 🧰 Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          # note: needs to include all platforms in `platforms.yml`
+          platforms: linux/amd64,linux/arm64
+
+      - name: 🛠️ Set up Docker Buildx
+        id: setup-builder
+        uses: docker/setup-buildx-action@v3
+
+      # configure the tagging schema for this project
+      - name: 🌐 Docker meta
+        id: meta # referenced in the next step
+        env:
+          # label the image with the PR URL if it was built from a PR
+          #   otherwise, label the image with the URL to the branch or tag
+          PYSPRY_IMAGE_URL: ${{ github.event_name == 'pull_request' &&
+            format('{0}/{1}/pull/{2}', github.server_url, github.repository, github.event.number) ||
+            format('{0}/{1}/tree/{2}', github.server_url, github.repository, github.ref_name) }}
+
+          # link the image to the commit that triggered the build
+          PYSPRY_IMAGE_SOURCE: >-
+            ${{ format('{0}/{1}/commit/{2}', github.server_url, github.repository, github.sha) }}
+
+        uses: docker/metadata-action@v4
+        with:
+          # note: the target of `docker buildx bake` is the service name in docker-compose.yml
+          bake-target: dev
+
+          images: ${{ env.CI_REGISTRY_IMAGE }}/dev
+
+          # ref: https://github.com/opencontainers/image-spec/blob/93f6e658/annotations.md#pre-defined-annotation-keys
+          labels: |
+            org.opencontainers.image.title=${{ github.repository }}
+            org.opencontainers.image.description=Provide dependencies for development and testing
+            org.opencontainers.image.source=${{ env.PYSPRY_IMAGE_SOURCE }}
+            org.opencontainers.image.url=${{ env.PYSPRY_IMAGE_URL }}
+
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            type=sha,format=short,prefix=
+
+      - name: 🏗️ Build and push Docker images
+        env:
+          # ref: https://github.com/bryant-finney/pyspry/blob/2b017f7e/docker-compose.yml#L17-L20
+          PYSPRY_BRANCH_TAG: ${{ steps.meta.outputs.version }}
+
+        uses: docker/bake-action@v4
+        with:
+          builder: ${{ steps.setup-builder.outputs.name }}
+          # extend `docker-compose.yml` with 'platforms.yml' for multi-arch builds
+          #   additionally, the bake file configures labels and tags for the build
+          files: |-
+            docker-compose.yml
+            platforms.yml
+            ${{ steps.meta.outputs.bake-file }}
+
+          pull: true
+          push: true
+          targets: dev
