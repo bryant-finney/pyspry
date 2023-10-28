@@ -33,6 +33,9 @@ jobs:
       CI_REGISTRY_IMAGE: ghcr.io/${{ github.repository }}
       PYTHON_VERSION: "3.11"
 
+    permissions:
+      packages: write
+
     runs-on: ubuntu-latest
 
     steps:
@@ -42,7 +45,6 @@ jobs:
           fetch-tags: true
 
       - name: 🔐 Log in to ghcr.io
-        if: github.triggering_actor == github.repository_owner
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
