@@ -5,16 +5,7 @@
 # yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
 name: 🐳 Docker
 
-# run this workflow for...
-#   - each push to `main`
-#   - each release tag (starting with `v`)
-#   - each pull request that changes a relevant file
 on:
-  push:
-    tags: v*
-    branches:
-      - main
-
   pull_request:
     paths:
       - .github/workflows/docker-build.yml
@@ -22,6 +13,10 @@ on:
       - docker-compose.yml
       - platforms.yml
       - poetry.lock
+
+  push:
+    tags: v*
+    branches: [main]
 
 # ⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
 
@@ -33,8 +28,8 @@ jobs:
       CI_REGISTRY_IMAGE: ghcr.io/${{ github.repository }}
       PYTHON_VERSION: "3.11"
 
-    permissions:
-      packages: write
+    outputs:
+      version: ${{ steps.meta.outputs.version }}
 
     runs-on: ubuntu-latest
 
@@ -115,3 +110,21 @@ jobs:
           pull: true
           push: true
           targets: dev
+
+  test:
+    container:
+      image: ghcr.io/${{ github.repository }}/dev:${{ needs.build-and-push.outputs.version }}
+
+    needs: build-and-push
+
+    permissions:
+      contents: read
+      packages: read
+      pull-requests: write
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - run: poetry install
+      - run: poe test

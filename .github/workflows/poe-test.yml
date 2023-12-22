@@ -1,0 +1,27 @@
+name: 🧪 poe test
+
+on:
+  pull_request:
+    paths:
+      - "**/*.py"
+      - "*.py"
+      - .github/workflows/poe-test.yml
+      - pyproject.toml
+      - sample-config.yml
+
+jobs:
+  run:
+    container:
+      image: ghcr.io/${{ github.repository }}/dev:main
+
+    permissions:
+      contents: read
+      packages: read
+      pull-requests: write
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - run: poetry install
+      - run: poe test
