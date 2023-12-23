@@ -11,6 +11,9 @@ on:
 
 jobs:
   check:
+    env:
+      GH_TOKEN: ${{ github.token }}
+
     outputs:
       triggered_docker: ${{ steps.changes.outputs.match }}
 
