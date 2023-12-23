@@ -21,15 +21,22 @@ jobs:
           --name-only ${{ github.event.pull_request.number }}
           --repo ${{ github.repository }} | sort >changes.txt
 
-      - run:
-          yq -r '.on.pull_request.paths[]' .github/workflows/docker-build.yml |
+          cat changes.txt
+
+      - run: yq -r '.on.pull_request.paths[]' .github/workflows/docker-build.yml |
           sort | uniq >docker.txt
+
+          cat docker.txt
+
+      - run: comm -12 changes.txt docker.txt >intersection.txt
+
+          cat intersection.txt
 
       - id: changes
         run: |
           {
             echo 'match<<EOF'
-            comm -12 changes.txt docker.txt
+            cat intersection.txt
             echo EOF
           } >>"$GITHUB_OUTPUT"
 
