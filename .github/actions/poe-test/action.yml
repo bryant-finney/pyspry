@@ -30,6 +30,7 @@ runs:
         action_fail_on_inconclusive: true
         check_name: ${{ inputs.title }}
         comment_mode: ${{ inputs.comment_mode }}
+        fail_on: errors
         files: docs/reports/pytest.xml
 
   using: composite
