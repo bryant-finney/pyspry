@@ -4,9 +4,6 @@ from __future__ import annotations
 # stdlib
 from typing import Any
 
-# third party
-import pytest
-
 # local
 from pyspry.nested_dict import NestedDict
 
@@ -16,4 +13,3 @@ def test_nested_dict_keys(configuration: dict[str, Any]) -> None:
     nested_dict = NestedDict(configuration)
     assert "APP_NAME_ATTR_B_K" in list(nested_dict.keys())
     assert "APP_NAME" not in list(nested_dict.keys())
-    pytest.fail("seeded test failure")
