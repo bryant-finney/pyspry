@@ -118,7 +118,9 @@ jobs:
     needs: build-and-push
 
     permissions:
+      checks: write
       contents: read
+      issues: read
       packages: read
       pull-requests: write
 
@@ -126,11 +128,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - run: poetry install
-      - run: poe test
 
-      - if: always()
-        uses: actions/upload-artifact@v4
+      - uses: ./.github/actions/poe-test
         with:
-          name: Coverage Report
-          path: docs/reports/pytest-html
+          title: "Test Results (image: ${{ needs.build-and-push.outputs.version }})"

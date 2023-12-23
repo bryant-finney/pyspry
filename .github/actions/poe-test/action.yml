@@ -1,0 +1,35 @@
+name: 🧪 poe test
+description: Invoke 'poe test' to run tests for the package.
+
+inputs:
+  comment_mode:
+    default: always
+    description: Passed directly to EnricoMi/publish-unit-test-result-action
+
+  title:
+    default: Test Results
+    description: Passed directly to EnricoMi/publish-unit-test-result-action
+
+runs:
+  steps:
+    - run: poetry install
+      shell: bash
+
+    - run: poe test
+      shell: bash
+
+    - if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: Coverage Report
+        path: docs/reports/pytest-html
+
+    - if: always()
+      uses: EnricoMi/publish-unit-test-result-action@v2
+      with:
+        action_fail_on_inconclusive: true
+        check_name: ${{ inputs.title }}
+        comment_mode: ${{ inputs.comment_mode }}
+        files: docs/reports/pytest.xml
+
+  using: composite

@@ -10,12 +10,38 @@ on:
       - sample-config.yml
 
 jobs:
+  check:
+    outputs:
+      triggered_docker: ${{ steps.changes.outputs.match }}
+
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: gh pr diff
+          --name-only ${{ github.event.pull_request.number }}
+          --repo ${{ github.repository }} | sort >changes.txt
+
+      - run: yq -r '.on.pull_request.paths[]' .github/workflows/docker-build.yml |
+          sort | uniq >docker.txt
+
+      - id: changes
+        run: |
+          {
+            echo 'match<<EOF'
+            comm -12 changes.txt docker.txt
+            echo EOF
+          } >>"$GITHUB_OUTPUT"
+
   run:
     container:
       image: ghcr.io/${{ github.repository }}/dev:main
 
+    needs: check
+
     permissions:
+      checks: write
       contents: read
+      issues: read
       packages: read
       pull-requests: write
 
@@ -23,11 +49,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - run: poetry install
-      - run: poe test
-
-      - if: always()
-        uses: actions/upload-artifact@v4
+      - uses: ./.github/actions/poe-test
         with:
-          name: Coverage Report
-          path: docs/reports/pytest-html
+          comment_mode: ${{ needs.check.outputs.triggered_docker == '' && 'always' || 'off' }}
+          title: "Test Results (image: main)"
