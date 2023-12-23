@@ -95,6 +95,7 @@ repos:
           - flake8-pytest-style
           - flake8-tidy-imports
           - radon[toml]
+          - setuptools
 
   - repo: https://github.com/pycqa/pydocstyle
     rev: 6.3.0

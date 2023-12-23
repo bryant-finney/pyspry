@@ -1,0 +1,67 @@
+name: 🧪 poe test
+
+on:
+  pull_request:
+    paths:
+      - "**/*.py"
+      - "*.py"
+      - .github/workflows/poe-test.yml
+      - pyproject.toml
+      - sample-config.yml
+
+jobs:
+  check:
+    env:
+      GH_TOKEN: ${{ github.token }}
+
+    outputs:
+      triggered_docker: ${{ steps.changes.outputs.match }}
+
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: gh pr diff
+          --name-only ${{ github.event.pull_request.number }}
+          --repo ${{ github.repository }} | sort >changes.txt
+
+          cat changes.txt
+
+      - run:
+          yq -r '.on.pull_request.paths[]' .github/workflows/docker-build.yml |
+          sort | uniq >docker.txt
+
+          cat docker.txt
+
+      - run: comm -12 changes.txt docker.txt >intersection.txt
+
+          cat intersection.txt
+
+      - id: changes
+        run: |
+          {
+            echo 'match<<EOF'
+            cat intersection.txt
+            echo EOF
+          } >>"$GITHUB_OUTPUT"
+
+  run:
+    container:
+      image: ghcr.io/${{ github.repository }}/dev:main
+
+    needs: check
+
+    permissions:
+      checks: write
+      contents: read
+      issues: read
+      packages: read
+      pull-requests: write
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/poe-test
+        with:
+          comment_mode: ${{ needs.check.outputs.triggered_docker == '' && 'always' || 'off' }}
+          title: "Test Results (image: main)"
