@@ -21,7 +21,8 @@ jobs:
           --name-only ${{ github.event.pull_request.number }}
           --repo ${{ github.repository }} | sort >changes.txt
 
-      - run: yq -r '.on.pull_request.paths[]' .github/workflows/docker-build.yml |
+      - run:
+          yq -r '.on.pull_request.paths[]' .github/workflows/docker-build.yml |
           sort | uniq >docker.txt
 
       - id: changes
