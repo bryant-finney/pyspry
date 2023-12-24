@@ -26,7 +26,8 @@ jobs:
 
           cat changes.txt
 
-      - run: yq -r '.on.pull_request.paths[]' .github/workflows/docker-build.yml |
+      - run:
+          yq -r '.on.pull_request.paths[]' .github/workflows/docker-build.yml |
           sort | uniq >docker.txt
 
           cat docker.txt
