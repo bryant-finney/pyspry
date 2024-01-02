@@ -136,7 +136,7 @@ types-pyyaml = "^6"
 django = "^4.1"
 django-extensions = "^3.2"
 anybadge = "^1.14"
-pylint = "^2.17"
+pylint = ">=2.17,<4.0"
 pylint-gitlab = "^1.2.0"
 certifi = ">=2023.07.22"
 
