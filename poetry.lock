@@ -2632,13 +2632,13 @@ testutils = ["gitpython (>3)"]
 
 [[package]]
 name = "pylint-gitlab"
-version = "1.2.0"
+version = "2.0.0"
 description = "This project provides pylint formatters for a nice integration with GitLab CI."
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "pylint-gitlab-1.2.0.tar.gz", hash = "sha256:9802350b7fafe9e5fb0749252beff4e10c76b6c33dc7a3be1166158894d22fa7"},
-    {file = "pylint_gitlab-1.2.0-py3-none-any.whl", hash = "sha256:5327e919a3b03d7eb0f08bab1c77bf108061dc6b14b66851595d98a06594ed4e"},
+    {file = "pylint-gitlab-2.0.0.tar.gz", hash = "sha256:84ac60e432c6bb37fc5da5f51fb094d73369c7ea4ffc6f7ed7e4e387434a314b"},
+    {file = "pylint_gitlab-2.0.0-py3-none-any.whl", hash = "sha256:0e163f0e546f23926a1e51327e086af5f41771ef66feed9b41b461fc108309b4"},
 ]
 
 [package.dependencies]
@@ -2648,13 +2648,11 @@ dill = "*"
 importlib-metadata = "*"
 isort = "*"
 jinja2 = "*"
-lazy-object-proxy = "*"
 markupsafe = "*"
 mccabe = "*"
 packaging = "*"
 platformdirs = "*"
 pylint = "*"
-pyparsing = "*"
 tomli = "*"
 tomlkit = "*"
 typing-extensions = "*"
@@ -4018,4 +4016,4 @@ testing = ["big-O", "flake8 (<5)", "jaraco.functools", "jaraco.itertools", "more
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.8"
-content-hash = "ff25465c2eca1490f5013f4a6672edb751c45a3b8704fcf7f15ed41f94c9655c"
+content-hash = "7432b1d006f7ab312d5323421d844f8dcbd97f7be103521830c313a0229ddac8"
