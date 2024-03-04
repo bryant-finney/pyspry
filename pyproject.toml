@@ -120,7 +120,7 @@ pdoc = "^14"
 coverage = { extras = ["toml"], version = ">=6.4,<8.0" }
 cruft = "^2.11"
 darglint = "^1.8"
-pytest = "^7.1.2"
+pytest = ">=7.1.2,<9.0.0"
 pytest-clarity = "^1.0.1"
 pytest-cov = ">=3,<5"
 pytest-mock = "^3.8"
