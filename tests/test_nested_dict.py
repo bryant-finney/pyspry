@@ -1,4 +1,5 @@
 """Execute tests for the `pyspry.nested_dict` module."""
+
 from __future__ import annotations
 
 # stdlib
