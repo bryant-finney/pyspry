@@ -1,4 +1,5 @@
 """Execute component-level tests for the `pyspry` package."""
+
 from __future__ import annotations
 
 # stdlib
