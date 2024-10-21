@@ -1,4 +1,5 @@
 """Configure test execution for `doctest`."""
+
 from __future__ import annotations
 
 # stdlib
