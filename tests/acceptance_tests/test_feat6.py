@@ -1,4 +1,5 @@
 """Define acceptance tests for feat(#6)."""
+
 from __future__ import annotations
 
 # stdlib
