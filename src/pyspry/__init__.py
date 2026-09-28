@@ -2,6 +2,7 @@
 """
 .. include:: ../../README.md
 """  # noqa: RST499
+
 # stdlib
 import logging
 
