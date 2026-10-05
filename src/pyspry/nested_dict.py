@@ -1,4 +1,5 @@
 """Define a `NestedDict` class designed for nested configuration settings."""
+
 from __future__ import annotations
 
 # stdlib
