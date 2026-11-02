@@ -1,4 +1,5 @@
 """Reproduce the error from [#5](https://gitlab.com/bfosi/pyspry/-/issues/5)."""
+
 from __future__ import annotations
 
 # stdlib
