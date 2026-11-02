@@ -1,5 +1,6 @@
 # noqa: D415
 """.. include:: architecture.md"""  # noqa: E501,RST201,RST214,RST215,RST301,RST499
+
 from __future__ import annotations
 
 # stdlib
