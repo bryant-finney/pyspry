@@ -3,6 +3,7 @@
 To update the settings in this module, open the default YAML file path and change the settings
 there.
 """
+
 # local
 from pyspry.base import SettingsContainer
 
