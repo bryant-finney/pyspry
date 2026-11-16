@@ -1,4 +1,5 @@
 """Define fixtures for this package's test suite."""
+
 from __future__ import annotations
 
 # stdlib
